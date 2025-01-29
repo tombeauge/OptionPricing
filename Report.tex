@@ -1,0 +1,147 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{biblatex}
+\usepackage{tcolorbox}
+\usepackage{amsthm}
+
+\title{Reflections on Option Pricing Models}
+\author{Tom Beaugé}
+\date{January 27, 2025}
+
+\tcbset{
+    note/.style={
+        colback=blue!5,        % Background color
+        colframe=blue!75!black, % Frame color
+        fonttitle=\bfseries,
+        title=Note,
+        arc=4mm,               % Rounded corners
+        boxrule=1pt,           % Thickness of box frame
+        left=6pt,
+        right=6pt,
+        top=6pt,
+        bottom=6pt,
+    }
+}
+
+\begin{document}
+
+    \maketitle
+
+    \begin{abstract}
+        This document reflects on my self-directed exploration of financial models for option pricing, beginning with the single-period binomial tree. I discuss the theoretical foundations, implementation challenges, and insights gained from constructing and analyzing the model. This work serves as a foundation for future investigations into more complex pricing frameworks, such as multi-period trees, stochastic calculus, and market microstructure.
+    \end{abstract}
+
+    \section{Introduction}
+    \label{sec:introduction}
+
+    The pricing of financial derivatives represents a cornerstone of modern quantitative finance. My project begins with the simplest discrete-time model---the binomial tree---to build intuition about no-arbitrage pricing, risk-neutral valuation, and dynamic hedging. Though elementary, this model encodes key principles that generalize to continuous-time frameworks like the Black-Scholes-Merton model. My goal is to iteratively implement and analyze increasingly sophisticated models, using each step to deepen my understanding of stochastic processes, measure theory, and computational finance.
+
+    \section{The Binomial Tree Model}
+    \label{sec:binomial}
+
+    With its very straightforward concept and basic mathematics, the binomial model seemed like a logical introduction to options pricing. However, this overtly simplistic binary idea that the price of an option can either go up or down is something to be noted. In the words of Paul Wilmott: "the model is for demonstration purposes only, it is not the real thing. As a model of the financial world it is too simplistic, as a concept for pricing it lacks the elegance that makes other methods preferable, and as a numerical scheme it is prehistoric. Use once and then throw away." This word of caution was kept in mind while I sought to implement it based on Chapter 15 of his book \textit{Paul Wilmott Introduces Quantitative Finance}.
+
+    \subsection{A Simple, One-step Binomial Tree}
+
+    In essence, the binomial model, introduced by Cox, Ross, and Rubinstein (1979), provides a discrete-time approximation of asset price dynamics, such that the underlying asset price \( S_t \) evolves in a probability space as:
+
+    \[
+        S_{t+1} =
+        \begin{cases}
+            S_t \cdot u & \text{with probability } p, \\
+            S_t \cdot d & \text{with probability } 1 - p.
+        \end{cases}
+    \]
+
+    where \( u > 1 + r > d > 0 \) ensures arbitrage-free dynamics, and \( r \) is the risk-free rate. Its simplicity belies its ability to replicate derivative payoffs through a self-financing portfolio of the underlying asset and risk-free bonds.
+
+    \subsubsection{Implementation}
+
+    From what was understood, the main idea of the binomial model is to create a risk-neutral valuation. This was achieved by constructing a portfolio composed of the underlying asset and risk-free bonds to exactly match the option's payoff. To prevent any arbitrage, the option's price must thus correspond to the cost of replicating this portfolio. The methodology for constructing this risk-free portfolio was directly inspired by \href{https://www.youtube.com/watch?v=eA5AtTx3rRI}{this YouTube video}, with the slight addition of fixed interest rates to account for the time value of money.
+
+    \medskip
+
+    The relationship governing the replicating portfolio is expressed as:
+
+    \[
+        P_t = \Delta S_t - V_t
+    \]
+
+    Here, \( P_t \) represents the value of the portfolio at time \( t \), \( \Delta \) is the hedge ratio indicating the number of units of the underlying asset held, \( S_t \) is the current price of the underlying asset, and \( V_t \) is the current price of the option. This construction ensures that the portfolio is risk-free by balancing the position in the underlying asset with the short position in the option.
+
+    \medskip
+
+    For the portfolio \( P_t \) to be risk-free, its future value must be identical in both the up and down states. This condition leads to:
+
+    \[
+        \Delta S_u - V_u = \Delta S_d - V_d
+    \]
+
+    Solving for the hedging ratio \( \Delta \) associated with the number of units of the underlying asset yields:
+
+    \[
+        \Delta = \frac{V_u - V_d}{S_u - S_d}
+    \]
+
+    This calculation ensures that the portfolio replicates the option's payoff in both possible future states, thereby enforcing the no-arbitrage condition.
+
+    \subsubsection{Insights}
+
+    By pricing the option in such a way, we are hedged against any possible fluctuation in price, as the arbitrary probability \emph{p} that the option will increase in price appears at no point in our pricing calculations.
+    Playing around with the expected value, I was also able to notice that for a specific probability \emph{p}, the expected value matched the pricing of my option echoing the First Fundamental Theorem of Asset Pricing applies here.
+
+    \begin{tcolorbox}[mynote, title=First Fundamental Theorem of Asset Pricing]
+        The \textbf{First Fundamental Theorem of Asset Pricing} states that a financial market is \textbf{arbitrage-free} if and only if there exists at least one \textbf{equivalent martingale measure} (also known as a risk-neutral measure).
+
+        In other words, the absence of arbitrage opportunities in a market is equivalent to the existence of a probability measure under which discounted asset prices follow a martingale process.
+    \end{tcolorbox}
+
+    \bigskip
+
+    \subsubsection*{Deriving the risk neutral probability \emph{p}:}
+
+    Assume the expected return equals the risk-free rate of the underlying asset:
+
+    \[
+        \mathbb{E}[S_{t+1}] = (1 + r) S_0
+    \]
+
+
+    where:
+
+    \[
+        \mathbb{E}[S_{t+1}] = p S_u + (1 - p) S_d
+    \]
+
+    Thus, solving for the risk-neutral probability \(p\) yields:
+
+    \[
+        p = \frac{R - d}{u - d}
+    \]
+
+    \subsubsection*{Limits}
+
+    Its assumptions---constant \( u \), \( d \), \( r \), and no transaction costs---are economically restrictive.
+    Moreover, the model oversimplifies price fluctuations to just an up and down movement.
+    It's also completly inadapted for more complex options, very poorly estimates those with longer expirations and does not account for volatility.
+
+    \medskip
+
+    These limitations motivate the need for more sophisticated models.
+
+    \subsubsection*{Future Directions}
+
+    This work lays the groundwork for several extensions:
+
+    \begin{itemize}
+        \item \textbf{Multi-Period Trees}: Generalizing to \( n \)-period trees to approximate continuous processes.
+        \item \textbf{American Options}: Incorporating early exercise features via dynamic programming.
+        \item \textbf{Volatility}: Experimenting with time-varying \( u \) and \( d \) to model volatility.
+    \end{itemize}
+
+\end{document}
