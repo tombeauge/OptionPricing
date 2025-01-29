@@ -25,6 +25,9 @@ public class OptionPricerGUI extends JFrame {
     private final JSlider interestRateSlider;
     private final JTextField interestRateField;
 
+    private final JSlider stepsSlider;
+    private final JTextField stepsField;
+
     private final JCheckBox callOptionCheckBox;
 
     // Output components
@@ -87,6 +90,13 @@ public class OptionPricerGUI extends JFrame {
         inputPanel.add(interestRateSlider);
         inputPanel.add(interestRateField);
 
+        // Steps Number
+        stepsSlider = createSlider(0, 50, 10, 5);
+        stepsField = createTextField("100");
+        inputPanel.add(new JLabel("Number of Steps:"));
+        inputPanel.add(stepsSlider);
+        inputPanel.add(stepsField);
+
         // Option Type
         callOptionCheckBox = new JCheckBox("Call Option", true);
         inputPanel.add(new JLabel("Option Type:"));
@@ -128,6 +138,7 @@ public class OptionPricerGUI extends JFrame {
         upFactorSlider.addChangeListener(sliderChangeListener);
         downFactorSlider.addChangeListener(sliderChangeListener);
         interestRateSlider.addChangeListener(sliderChangeListener);
+        stepsSlider.addChangeListener(sliderChangeListener);
 
         // Text field listeners
         initialPriceField.addActionListener(new ActionListener() {
@@ -245,7 +256,8 @@ public class OptionPricerGUI extends JFrame {
         probabilityUpField.setText(String.format("%.2f", probabilityUpSlider.getValue() / 100.0));
         upFactorField.setText(String.format("%.5f", upFactorSlider.getValue() / 100.0));
         downFactorField.setText(String.format("%.2f", downFactorSlider.getValue() / 100.0));
-        interestRateField.setText(String.format("%.2f", interestRateSlider.getValue() / 100.0));
+        interestRateField.setText(String.valueOf(interestRateSlider.getValue()));
+        stepsField.setText(String.format("%.2f", stepsSlider.getValue() / 100.0));
     }
 
     private void calculateAndDisplay() {
@@ -256,12 +268,14 @@ public class OptionPricerGUI extends JFrame {
             double upFactor = upFactorSlider.getValue() / 100.0;
             double downFactor = downFactorSlider.getValue() / 100.0;
             double interestRate = interestRateSlider.getValue() / 100.0;
+            int steps = Math.round((float) stepsSlider.getValue());
             boolean isCall = callOptionCheckBox.isSelected();
 
             SimpleBinomialTree binomialTree = new SimpleBinomialTree(initialPrice, strikePrice, probabilityUp,
                     upFactor, downFactor, interestRate, isCall);
+            MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, steps);
 
-            optionPriceLabel.setText(String.format("Option Price: %.4f", binomialTree.getOptionPrice()));
+            optionPriceLabel.setText(String.format("Option Price: %.4f", multiStepBinomialTree.getOptionPrice()));
             deltaLabel.setText(String.format("Delta: %.4f", binomialTree.getDelta()));
             portfolioLabel.setText(String.format("Present Portfolio Value: %.4f", binomialTree.getPresentPortValue()));
             expectedValueLabel.setText(String.format("Expected Value: %.4f", binomialTree.getExpectedValue()));

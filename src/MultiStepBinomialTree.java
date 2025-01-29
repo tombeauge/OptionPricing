@@ -1,9 +1,9 @@
-public class SimpleBinomialTree {
-
+public class MultiStepBinomialTree {
     private final double delta;
     private final double optionPrice;
     private final double presentPortValue;
     private final double expectedValue;
+    private double[] optionValues;
 
     /**
      * Implements a single-step binomial tree model for option pricing.
@@ -22,8 +22,9 @@ public class SimpleBinomialTree {
      * @param downFactor    Downward movement factor.
      * @param interestRate  Risk-free interest rate per period (e.g., 0.05 for 5%).
      * @param isCall        True for Call option, False for Put option.
+     * @param steps         Number of steps
      */
-    public SimpleBinomialTree(double initialPrice, double strikePrice, double probabilityUp, double upFactor, double downFactor, double interestRate, boolean isCall) {
+    public MultiStepBinomialTree(double initialPrice, double strikePrice, double probabilityUp, double upFactor, double downFactor, double interestRate, boolean isCall, int steps) {
 
         if (probabilityUp < 0 || probabilityUp > 1) {
             throw new IllegalArgumentException("Probability out of bounds; must be between 0 and 1");
@@ -31,6 +32,48 @@ public class SimpleBinomialTree {
 
         if (upFactor < downFactor) {
             throw new IllegalArgumentException("The upper factor must be greater than the lower factor");
+        }
+
+        if (steps <= 0){
+            throw new IllegalArgumentException("Steps must be greater than zero");
+        }
+
+        System.out.println("Steps: " + steps);
+
+        // Calculating risk-neutral probability
+        double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
+
+        // Establishing an array of possible stock prices at maturity
+        // After n steps the stock can be i times and down (steps - i) times
+        double[] stockPriceMaturity = new double[steps + 1];
+        optionValues = new double[steps + 1];
+        for (int i = 0; i <= steps; i++) {
+            int ups = i;
+            int downs = steps - i;
+            stockPriceMaturity[i] = initialPrice * Math.pow(upFactor, ups) * Math.pow(downFactor, downs);
+
+            // Initialising the possible options value at expiration
+            optionValues[i] = calculateOptionPayoff(stockPriceMaturity[i], strikePrice, isCall);
+        }
+
+        System.out.println(stockPriceMaturity[steps]);
+
+        // Backward induction
+        for (int step = steps - 1; step >= 0; step--) {
+            for (int i = 0; i <= step; i++) {
+
+                SimpleBinomialTree tree = new SimpleBinomialTree(stockPriceMaturity[i],
+                        strikePrice,
+                        probabilityUp,
+                        upFactor,
+                        downFactor,
+                        interestRate,
+                        isCall
+                );
+
+                optionValues[i] = tree.getOptionPrice();
+                System.out.println(optionValues[i]);
+            }
         }
 
         double probabilityDown = 1 - probabilityUp;
@@ -63,9 +106,21 @@ public class SimpleBinomialTree {
         return delta * initialPrice - presentPortValue;
     }
 
+    private double calculateRiskNeutralProbability(double upFactor, double downFactor, double interestRate) {
+        double q = ((1 + interestRate) - downFactor) / (upFactor - downFactor);
+        if (q < 0 || q > 1) {
+            throw new IllegalArgumentException("Invalid risk-neutral probability; check model parameters");
+        }
+        return q;
+    }
+
+    private double calculateOptionPayoff(double stockPrice, double strikePrice, boolean isCall) {
+        return isCall ? Math.max(stockPrice - strikePrice, 0) : Math.max(strikePrice - stockPrice, 0);
+    }
+
     // Getter methods
     public double getOptionPrice() {
-        return optionPrice;
+        return optionValues[0];
     }
 
     public double getDelta() {
@@ -79,4 +134,5 @@ public class SimpleBinomialTree {
     public double getExpectedValue() {
         return expectedValue;
     }
+
 }
