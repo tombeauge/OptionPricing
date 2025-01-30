@@ -1,40 +1,51 @@
-import os
-
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_option_price_evolution(csv_file_path):
-    # Read the CSV file using pandas
+def main():
+    if len(sys.argv) < 2:
+        print("No computation time provided.")
+        sys.exit(1)
+
     try:
-        data = pd.read_csv(csv_file_path)
+        computation_time = float(sys.argv[1])
+    except ValueError:
+        print("Invalid computation time provided.")
+        sys.exit(1)
+
+    # Define the path to the CSV file
+    csv_path = "src/main/resources/EvolutionOfOptionPrice.csv"
+
+    # Read the CSV file
+    try:
+        df = pd.read_csv(csv_path)
     except FileNotFoundError:
-        print(f"File not found: {csv_file_path}")
-        return
-    except pd.errors.EmptyDataError:
-        print("No data found in the CSV file.")
-        return
-    except pd.errors.ParserError:
-        print("Error parsing the CSV file.")
-        return
+        print(f"CSV file not found at {csv_path}.")
+        sys.exit(1)
 
-    # Check if required columns exist
-    if 'Step' not in data.columns or 'OptionPrice' not in data.columns:
-        print("CSV file must contain 'Step' and 'OptionPrice' columns.")
-        return
-
-    # Plotting
+    # Plot the Option Price vs. Steps
     plt.figure(figsize=(10, 6))
-    plt.plot(data['Step'], data['OptionPrice'], marker='o', linestyle='-', color='b')
+    plt.plot(df['Step'], df['OptionPrice'], marker='o', linestyle='-', color='b', label='Option Price')
     plt.title('Option Price Evolution')
     plt.xlabel('Step')
     plt.ylabel('Option Price')
     plt.grid(True)
-    plt.xticks(range(int(data['Step'].min()), int(data['Step'].max()) + 1, max(1, int((data['Step'].max() - data['Step'].min()) / 10))))
-    plt.tight_layout()
+
+    # Annotate computation time on the graph
+    plt.annotate(f'Computation Time: {computation_time:.4f} seconds',
+                 xy=(-0.1, -0.1), xycoords='axes fraction',
+                 fontsize=12, color='black',
+                 horizontalalignment='left', verticalalignment='top')
+
+    # Add legend
+    plt.legend()
+
+    # Save the plot as an image
+    plot_path = f"src/main/resources/OptionPriceEvolution.png"
+    plt.savefig(plot_path)
     plt.show()
 
+    print(f"Plot saved successfully at {plot_path}.")
+
 if __name__ == "__main__":
-    #TODO fix file path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_file = os.path.join(project_root, "resources", "EvolutionOfOptionPrice.csv")
-    plot_option_price_evolution(csv_file)
+    main()

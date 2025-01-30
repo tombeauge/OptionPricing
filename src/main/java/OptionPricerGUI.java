@@ -5,6 +5,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class OptionPricerGUI extends JFrame {
 
@@ -48,13 +50,15 @@ public class OptionPricerGUI extends JFrame {
     private final JButton runPythonButton;
     private final JTextArea pythonOutputArea;
 
-    private int numberStepsGraph = 100;
-    private double computationTime;
+    private int numberStepsGraph = 100; // Default value
+
+    // Logger for debugging
+    private static final Logger LOGGER = Logger.getLogger(OptionPricerGUI.class.getName());
 
     public OptionPricerGUI() {
         setTitle("Simple Binomial Tree Option Pricing");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 700); // Increased size to accommodate output area
+        setSize(800, 800); // Increased size to accommodate output area
         setLayout(new BorderLayout());
 
         // Initialize panels
@@ -146,6 +150,7 @@ public class OptionPricerGUI extends JFrame {
 
         // Initialize the Run Python Script button
         runPythonButton = new JButton("Run Python Script");
+        runPythonButton.setToolTipText("Click to run the Python script with the specified number of steps.");
         outputPanel.add(runPythonButton, BorderLayout.CENTER);
 
         // Initialize the Python Output Area
@@ -155,6 +160,25 @@ public class OptionPricerGUI extends JFrame {
         outputPanel.add(scrollPane, BorderLayout.SOUTH);
 
         add(outputPanel, BorderLayout.SOUTH);
+
+        // Configure Logger to display messages in pythonOutputArea
+        LOGGER.setLevel(Level.ALL);
+        LOGGER.addHandler(new java.util.logging.Handler() {
+            @Override
+            public void publish(java.util.logging.LogRecord record) {
+                if (record.getLevel().intValue() >= Level.INFO.intValue()) {
+                    SwingUtilities.invokeLater(() -> {
+                        pythonOutputArea.append(record.getLevel() + ": " + record.getMessage() + "\n");
+                    });
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() throws SecurityException {}
+        });
 
         // Add listeners
         ChangeListener sliderChangeListener = new ChangeListener() {
@@ -173,7 +197,7 @@ public class OptionPricerGUI extends JFrame {
         interestRateSlider.addChangeListener(sliderChangeListener);
         stepsSlider.addChangeListener(sliderChangeListener);
 
-        // Text field listeners
+        // Text field listeners with input validation and logging
         initialPriceField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -181,7 +205,13 @@ public class OptionPricerGUI extends JFrame {
                     int value = Integer.parseInt(initialPriceField.getText());
                     initialPriceSlider.setValue(value);
                 } catch (NumberFormatException ex) {
-                    // Invalid input, ignore
+                    LOGGER.log(Level.WARNING, "Invalid Initial Price input: " + initialPriceField.getText());
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Invalid Initial Price! Please enter a valid integer.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         });
@@ -193,7 +223,13 @@ public class OptionPricerGUI extends JFrame {
                     int value = Integer.parseInt(strikePriceField.getText());
                     strikePriceSlider.setValue(value);
                 } catch (NumberFormatException ex) {
-                    // Invalid input, ignore
+                    LOGGER.log(Level.WARNING, "Invalid Strike Price input: " + strikePriceField.getText());
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Invalid Strike Price! Please enter a valid integer.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         });
@@ -203,10 +239,19 @@ public class OptionPricerGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     double value = Double.parseDouble(probabilityUpField.getText());
+                    if (value < 0.0 || value > 1.0) {
+                        throw new NumberFormatException("Probability must be between 0 and 1.");
+                    }
                     int sliderValue = (int) (value * 100);
                     probabilityUpSlider.setValue(sliderValue);
                 } catch (NumberFormatException ex) {
-                    // Invalid input, ignore
+                    LOGGER.log(Level.WARNING, "Invalid Probability Up input: " + probabilityUpField.getText());
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Invalid Probability Up! Please enter a valid decimal between 0 and 1.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         });
@@ -216,10 +261,19 @@ public class OptionPricerGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     double value = Double.parseDouble(upFactorField.getText());
+                    if (value <= 0.0) {
+                        throw new NumberFormatException("Up Factor must be positive.");
+                    }
                     int sliderValue = (int) (value * 100);
                     upFactorSlider.setValue(sliderValue);
                 } catch (NumberFormatException ex) {
-                    // Invalid input, ignore
+                    LOGGER.log(Level.WARNING, "Invalid Up Factor input: " + upFactorField.getText());
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Invalid Up Factor! Please enter a valid positive decimal.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         });
@@ -229,10 +283,19 @@ public class OptionPricerGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     double value = Double.parseDouble(downFactorField.getText());
+                    if (value <= 0.0 || value >= 1.0) {
+                        throw new NumberFormatException("Down Factor must be between 0 and 1.");
+                    }
                     int sliderValue = (int) (value * 100);
                     downFactorSlider.setValue(sliderValue);
                 } catch (NumberFormatException ex) {
-                    // Invalid input, ignore
+                    LOGGER.log(Level.WARNING, "Invalid Down Factor input: " + downFactorField.getText());
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Invalid Down Factor! Please enter a valid decimal between 0 and 1.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         });
@@ -242,10 +305,19 @@ public class OptionPricerGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     double value = Double.parseDouble(interestRateField.getText());
+                    if (value < 0.0) {
+                        throw new NumberFormatException("Interest Rate cannot be negative.");
+                    }
                     int sliderValue = (int) (value * 100);
                     interestRateSlider.setValue(sliderValue);
                 } catch (NumberFormatException ex) {
-                    // Invalid input, ignore
+                    LOGGER.log(Level.WARNING, "Invalid Interest Rate input: " + interestRateField.getText());
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Invalid Interest Rate! Please enter a valid non-negative decimal.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
         });
@@ -258,7 +330,7 @@ public class OptionPricerGUI extends JFrame {
             }
         });
 
-        // Add ActionListener to the Run Python Script button
+        // Add ActionListener to the Run Python Script button with input prompt
         runPythonButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -280,10 +352,29 @@ public class OptionPricerGUI extends JFrame {
                             throw new NumberFormatException("Value must be a positive integer.");
                         }
 
-                        // Update the fields and write to CSV
-                        calculateAndDisplay();
+                        // Optional: Confirm large inputs
+                        if (numberStepsGraph > 1000) { // Example threshold
+                            int response = JOptionPane.showConfirmDialog(
+                                    OptionPricerGUI.this,
+                                    "You have entered a large number of steps (" + numberStepsGraph + "). This may take a significant amount of time. Do you wish to proceed?",
+                                    "Confirm Large Input",
+                                    JOptionPane.YES_NO_OPTION,
+                                    JOptionPane.WARNING_MESSAGE
+                            );
 
-                        // Proceed to run the Python script with the updated CSV
+                            if (response != JOptionPane.YES_OPTION) {
+                                return; // Abort the operation
+                            }
+                        }
+
+                        // Update the fields and write to CSV
+                        // Measure computation time
+                        long startTime = System.currentTimeMillis();
+                        calculateAndDisplay();
+                        long endTime = System.currentTimeMillis();
+                        double computationTime = (endTime - startTime) / 100000.0; // in seconds
+
+                        // Proceed to run the Python script with the computationTime
                         runPythonScript(computationTime);
 
                     } catch (NumberFormatException ex) {
@@ -294,6 +385,7 @@ public class OptionPricerGUI extends JFrame {
                                 "Input Error",
                                 JOptionPane.ERROR_MESSAGE
                         );
+                        LOGGER.log(Level.WARNING, "Invalid input for numberStepsGraph: " + input);
                     }
                 }
             }
@@ -345,7 +437,7 @@ public class OptionPricerGUI extends JFrame {
             double upFactor = upFactorSlider.getValue() / 100.0;
             double downFactor = downFactorSlider.getValue() / 100.0;
             double interestRate = interestRateSlider.getValue() / 100.0;
-            int steps = stepsSlider.getValue(); // No need for Math.round since stepsSlider is integer
+            int steps = stepsSlider.getValue(); // Unrelated to numberStepsGraph
             boolean isCall = callOptionCheckBox.isSelected();
 
             SimpleBinomialTree binomialTree = new SimpleBinomialTree(initialPrice, strikePrice, probabilityUp,
@@ -362,9 +454,16 @@ public class OptionPricerGUI extends JFrame {
                             .append(String.valueOf(largeBinomialTree.getOptionPrice()))
                             .append("\n");
                 }
-                System.out.println("Data exported successfully to " + filePath);
+                LOGGER.log(Level.INFO, "Data exported successfully to " + filePath);
             } catch (IOException e) {
-                System.err.println("Error writing to CSV: " + e.getMessage());
+                LOGGER.log(Level.SEVERE, "Error writing to CSV: " + e.getMessage());
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Error writing to CSV: " + e.getMessage(),
+                        "File Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
             }
 
             optionValues = multiStepBinomialTree.getOptionValues();
@@ -383,67 +482,90 @@ public class OptionPricerGUI extends JFrame {
             long endTime = System.currentTimeMillis();
 
             // Calculate duration in seconds with four decimal places
-            computationTime = (endTime - startTime) / 100000.0;
-
+            double duration = (endTime - startTime) / 100000.0;
 
         } catch (IllegalArgumentException ex) {
             optionPriceLabel.setText("Error: " + ex.getMessage());
             deltaLabel.setText("");
             portfolioLabel.setText("");
             expectedValueLabel.setText("");
+            LOGGER.log(Level.SEVERE, "IllegalArgumentException: " + ex.getMessage());
         }
     }
 
     private void runPythonScript(double computationTime) {
-        // Define the path to the Python interpreter
-        String pythonInterpreter;
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (osName.contains("win")) {
-            pythonInterpreter = "venv\\Scripts\\python.exe"; // Windows path
-        } else {
-            pythonInterpreter = "venv/bin/python"; // macOS/Linux path
-        }
+        // Disable the button to prevent multiple clicks
+        runPythonButton.setEnabled(false);
+        pythonOutputArea.setText("Running Python script...\n");
 
-        // Define the relative path to the Python script
-        String pythonScript = "src/main/python/OptionPriceBinomialTreeGraph.py";
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                // Define the path to the Python interpreter based on OS
+                String pythonInterpreter;
+                String osName = System.getProperty("os.name").toLowerCase();
+                if (osName.contains("mac") || osName.contains("nix") || osName.contains("nux")) {
+                    pythonInterpreter = "venv/bin/python"; // macOS/Linux path
+                } else if (osName.contains("win")) {
+                    pythonInterpreter = "venv\\Scripts\\python.exe"; // Windows path
+                } else {
+                    // Default to macOS/Linux path
+                    pythonInterpreter = "venv/bin/python";
+                }
 
-        // Create a ProcessBuilder instance with the computation time as an argument
-        ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, pythonScript, String.valueOf(computationTime));
+                // Define the relative path to the Python script
+                String pythonScript = "src/main/python/OptionPriceBinomialTreeGraph.py";
 
-        // Set the working directory to the project's root directory
-        processBuilder.directory(new File(System.getProperty("user.dir")));
+                // Use absolute paths for debugging (Uncomment if needed)
+                // pythonInterpreter = "/Users/t.beauge/Documents/EPFL/prog/projects/personal/OptionPricing/venv/bin/python";
+                // pythonScript = "/Users/t.beauge/Documents/EPFL/prog/projects/personal/OptionPricing/src/main/python/OptionPriceBinomialTreeGraph.py";
 
-        // Redirect error stream to standard output for easier handling
-        processBuilder.redirectErrorStream(true);
+                // Create a ProcessBuilder instance with the computation time as an argument
+                ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, pythonScript, String.valueOf(computationTime));
 
-        try {
-            // Start the process
-            Process process = processBuilder.start();
+                // Set the working directory to the project's root directory
+                processBuilder.directory(new File(System.getProperty("user.dir")));
 
-            // Read the output from the command
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder output = new StringBuilder();
-            String line;
+                // Redirect error stream to standard output for easier handling
+                processBuilder.redirectErrorStream(true);
 
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+                try {
+                    // Start the process
+                    Process process = processBuilder.start();
+
+                    // Read the output from the command
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder output = new StringBuilder();
+                    String line;
+
+                    while ((line = reader.readLine()) != null) {
+                        output.append(line).append("\n");
+                    }
+
+                    // Wait for the process to complete
+                    int exitCode = process.waitFor();
+
+                    // Update the JTextArea on the Event Dispatch Thread
+                    SwingUtilities.invokeLater(() -> {
+                        if (exitCode == 0) {
+                            pythonOutputArea.setText("Python script executed successfully:\n" + output.toString());
+                        } else {
+                            pythonOutputArea.setText("Python script execution failed with exit code " + exitCode + ":\n" + output.toString());
+                        }
+                        // Re-enable the button
+                        runPythonButton.setEnabled(true);
+                    });
+
+                } catch (IOException | InterruptedException ex) {
+                    ex.printStackTrace();
+                    SwingUtilities.invokeLater(() -> {
+                        pythonOutputArea.setText("An error occurred while executing the Python script:\n" + ex.getMessage());
+                        runPythonButton.setEnabled(true);
+                    });
+                }
+                return null;
             }
-
-            // Wait for the process to complete
-            int exitCode = process.waitFor();
-
-            // Display the output and errors in the JTextArea
-            if (exitCode == 0) {
-                pythonOutputArea.setText("Python script executed successfully:\n" + output.toString());
-            } else {
-                pythonOutputArea.setText("Python script execution failed with exit code " + exitCode + ":\n" + output.toString());
-            }
-
-        } catch (IOException | InterruptedException ex) {
-            ex.printStackTrace();
-            pythonOutputArea.setText("An error occurred while executing the Python script:\n" + ex.getMessage());
-        }
+        };
+        worker.execute();
     }
-
-
 }
