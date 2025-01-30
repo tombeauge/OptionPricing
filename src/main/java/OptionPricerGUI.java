@@ -33,7 +33,7 @@ public class OptionPricerGUI extends JFrame {
     private final JCheckBox callOptionCheckBox;
 
     private final DiagramWindow diagramWindow;
-    private final String filePath = "EvolutionOfOptionPrice.csv";
+    private final String filePath = "src/main/resources/EvolutionOfOptionPrice.csv";
 
     // Output components
     private final JLabel optionPriceLabel;
