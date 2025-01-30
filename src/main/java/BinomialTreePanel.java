@@ -21,7 +21,6 @@ public class BinomialTreePanel extends JPanel {
     public void setStockPrices(double[][] stockPrices) {
         this.stockPrices = stockPrices;
         this.showStockPrices = true;
-        System.out.println("HERE: "+ Arrays.deepToString(stockPrices));
         adjustPreferredSize();
         repaint();
     }

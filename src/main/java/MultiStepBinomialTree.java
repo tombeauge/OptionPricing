@@ -47,8 +47,6 @@ public class MultiStepBinomialTree {
             throw new IllegalArgumentException("Steps must be greater than zero");
         }
 
-        System.out.println("Steps: " + steps);
-
         // Calculating risk-neutral probability
         double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
 
@@ -85,8 +83,6 @@ public class MultiStepBinomialTree {
         }
 
         optionPrice = optionValues[0][0];
-
-        System.out.println("Option price: " + optionPrice);
     }
 
     private double calculateRiskNeutralProbability(double upFactor, double downFactor, double interestRate) {
@@ -115,7 +111,6 @@ public class MultiStepBinomialTree {
     }
 
     public double[][] getStockPrices() {
-        System.out.printf("Stock Prices: " + Arrays.deepToString(stockPriceMaturity));
         return stockPriceMaturity;
     }
 

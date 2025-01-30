@@ -48,6 +48,9 @@ public class OptionPricerGUI extends JFrame {
     private final JButton runPythonButton;
     private final JTextArea pythonOutputArea;
 
+    private int numberStepsGraph = 100;
+    private double computationTime;
+
     public OptionPricerGUI() {
         setTitle("Simple Binomial Tree Option Pricing");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -127,7 +130,7 @@ public class OptionPricerGUI extends JFrame {
         outputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JPanel labelsPanel = new JPanel();
-        labelsPanel.setLayout(new GridLayout(4, 1));
+        labelsPanel.setLayout(new GridLayout(5, 1)); // Changed to 5 rows
 
         optionPriceLabel = new JLabel("Option Price: ");
         deltaLabel = new JLabel("Delta: ");
@@ -259,7 +262,40 @@ public class OptionPricerGUI extends JFrame {
         runPythonButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                runPythonScript();
+
+                // Prompt the user for an integer input
+                String input = JOptionPane.showInputDialog(
+                        OptionPricerGUI.this,
+                        "Enter an integer value:",
+                        "Input Required",
+                        JOptionPane.QUESTION_MESSAGE
+                );
+
+                if (input != null) { // Check if the user didn't cancel the dialog
+                    try {
+                        numberStepsGraph = Integer.parseInt(input.trim());
+
+                        // Validate the input (optional)
+                        if (numberStepsGraph <= 0) {
+                            throw new NumberFormatException("Value must be a positive integer.");
+                        }
+
+                        // Update the fields and write to CSV
+                        calculateAndDisplay();
+
+                        // Proceed to run the Python script with the updated CSV
+                        runPythonScript(computationTime);
+
+                    } catch (NumberFormatException ex) {
+                        // Inform the user about invalid input
+                        JOptionPane.showMessageDialog(
+                                OptionPricerGUI.this,
+                                "Invalid input! Please enter a valid positive integer.",
+                                "Input Error",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                    }
+                }
             }
         });
 
@@ -300,6 +336,9 @@ public class OptionPricerGUI extends JFrame {
 
     private void calculateAndDisplay() {
         try {
+            // Record the start time
+            long startTime = System.currentTimeMillis();
+
             double initialPrice = initialPriceSlider.getValue();
             double strikePrice = strikePriceSlider.getValue();
             double probabilityUp = probabilityUpSlider.getValue() / 100.0;
@@ -316,7 +355,7 @@ public class OptionPricerGUI extends JFrame {
             try (FileWriter writer = new FileWriter(filePath)) {
                 writer.append("Step,OptionPrice\n");
 
-                for (int i = 1; i <= 100; i++) {
+                for (int i = 1; i <= numberStepsGraph; i++) {
                     MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, i);
                     writer.append(String.valueOf(i))
                             .append(",")
@@ -339,6 +378,14 @@ public class OptionPricerGUI extends JFrame {
             deltaLabel.setText(String.format("Delta: %.4f", binomialTree.getDelta()));
             portfolioLabel.setText(String.format("Present Portfolio Value: %.4f", binomialTree.getPresentPortValue()));
             expectedValueLabel.setText(String.format("Expected Value: %.4f", binomialTree.getExpectedValue()));
+
+            // Record the end time
+            long endTime = System.currentTimeMillis();
+
+            // Calculate duration in seconds with four decimal places
+            computationTime = (endTime - startTime) / 100000.0;
+
+
         } catch (IllegalArgumentException ex) {
             optionPriceLabel.setText("Error: " + ex.getMessage());
             deltaLabel.setText("");
@@ -347,21 +394,26 @@ public class OptionPricerGUI extends JFrame {
         }
     }
 
-    private void runPythonScript() {
+    private void runPythonScript(double computationTime) {
         // Define the path to the Python interpreter
-        String pythonInterpreter = "python3"; // Assumes 'python3' is in the system PATH
+        String pythonInterpreter;
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (osName.contains("win")) {
+            pythonInterpreter = "venv\\Scripts\\python.exe"; // Windows path
+        } else {
+            pythonInterpreter = "venv/bin/python"; // macOS/Linux path
+        }
 
         // Define the relative path to the Python script
-        String pythonScript = "src/main/python/RunGUI.py";
+        String pythonScript = "src/main/python/OptionPriceBinomialTreeGraph.py";
 
-        // Create a ProcessBuilder instance with relative paths
-        ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, pythonScript);
+        // Create a ProcessBuilder instance with the computation time as an argument
+        ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, pythonScript, String.valueOf(computationTime));
 
         // Set the working directory to the project's root directory
-        // (Assuming the Java application is run from the project's root)
         processBuilder.directory(new File(System.getProperty("user.dir")));
 
-        // Optional: Redirect error stream to standard output
+        // Redirect error stream to standard output for easier handling
         processBuilder.redirectErrorStream(true);
 
         try {
@@ -392,4 +444,6 @@ public class OptionPricerGUI extends JFrame {
             pythonOutputArea.setText("An error occurred while executing the Python script:\n" + ex.getMessage());
         }
     }
+
+
 }
