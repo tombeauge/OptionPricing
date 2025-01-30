@@ -30,11 +30,16 @@ public class OptionPricerGUI extends JFrame {
 
     private final JCheckBox callOptionCheckBox;
 
+    private BinomialTreePanel treePanel;
+    private DiagramWindow diagramWindow;
+
     // Output components
     private final JLabel optionPriceLabel;
     private final JLabel deltaLabel;
     private final JLabel portfolioLabel;
     private final JLabel expectedValueLabel;
+
+    private double[][] optionValues;
 
     public OptionPricerGUI() {
         setTitle("Simple Binomial Tree Option Pricing");
@@ -56,7 +61,7 @@ public class OptionPricerGUI extends JFrame {
         inputPanel.add(initialPriceField);
 
         // Strike Price
-        strikePriceSlider = createSlider(0, 200, 100, 10);
+        strikePriceSlider = createSlider(0, 200, 105, 10);
         strikePriceField = createTextField("100");
         inputPanel.add(new JLabel("Strike Price:"));
         inputPanel.add(strikePriceSlider);
@@ -70,35 +75,38 @@ public class OptionPricerGUI extends JFrame {
         inputPanel.add(probabilityUpField);
 
         // Up Factor
-        upFactorSlider = createSlider(100, 200, 150, 5); // Represents 1.00 to 2.00
+        upFactorSlider = createSlider(100, 200, 110, 5); // Represents 1.00 to 2.00
         upFactorField = createTextField("1.50");
         inputPanel.add(new JLabel("Up Factor:"));
         inputPanel.add(upFactorSlider);
         inputPanel.add(upFactorField);
 
         // Down Factor
-        downFactorSlider = createSlider(0, 100, 75, 5); // Represents 0.00 to 1.00
+        downFactorSlider = createSlider(0, 100, 90, 5); // Represents 0.00 to 1.00
         downFactorField = createTextField("0.75");
         inputPanel.add(new JLabel("Down Factor:"));
         inputPanel.add(downFactorSlider);
         inputPanel.add(downFactorField);
 
         // Interest Rate
-        interestRateSlider = createSlider(0, 100, 5, 5); // Represents 0% to 100%
+        interestRateSlider = createSlider(0, 100, 0, 5); // Represents 0% to 100%
         interestRateField = createTextField("0.05");
         inputPanel.add(new JLabel("Interest Rate:"));
         inputPanel.add(interestRateSlider);
         inputPanel.add(interestRateField);
 
         // Steps Number
-        stepsSlider = createSlider(0, 50, 10, 5);
-        stepsField = createTextField("100");
+        stepsSlider = createSlider(0, 50, 3, 5);
+        stepsField = createTextField("3");
         inputPanel.add(new JLabel("Number of Steps:"));
         inputPanel.add(stepsSlider);
         inputPanel.add(stepsField);
 
+        diagramWindow = new DiagramWindow();
+        diagramWindow.setVisible(true);
+
         // Option Type
-        callOptionCheckBox = new JCheckBox("Call Option", true);
+        callOptionCheckBox = new JCheckBox("Call Option", false);
         inputPanel.add(new JLabel("Option Type:"));
         inputPanel.add(callOptionCheckBox);
         inputPanel.add(new JLabel(""));
@@ -274,6 +282,10 @@ public class OptionPricerGUI extends JFrame {
             SimpleBinomialTree binomialTree = new SimpleBinomialTree(initialPrice, strikePrice, probabilityUp,
                     upFactor, downFactor, interestRate, isCall);
             MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, steps);
+
+            optionValues = multiStepBinomialTree.getOptionValues();
+
+            diagramWindow.updateTree(optionValues);
 
             optionPriceLabel.setText(String.format("Option Price: %.4f", multiStepBinomialTree.getOptionPrice()));
             deltaLabel.setText(String.format("Delta: %.4f", binomialTree.getDelta()));
