@@ -4,6 +4,8 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class OptionPricerGUI extends JFrame {
 
@@ -30,8 +32,8 @@ public class OptionPricerGUI extends JFrame {
 
     private final JCheckBox callOptionCheckBox;
 
-    private BinomialTreePanel treePanel;
     private final DiagramWindow diagramWindow;
+    private final String filePath = "EvolutionOfOptionPrice.csv";
 
     // Output components
     private final JLabel optionPriceLabel;
@@ -285,6 +287,23 @@ public class OptionPricerGUI extends JFrame {
                     upFactor, downFactor, interestRate, isCall);
             MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, steps);
 
+            try (FileWriter writer = new FileWriter(filePath)) {
+                writer.append("Step,OptionPrice\n");
+
+                for (int i = 1; i <= 100; i++) {
+
+                    MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, i);
+
+                    writer.append((String.valueOf(i)))
+                            .append(",")
+                            .append(String.valueOf(largeBinomialTree.getOptionPrice()))
+                            .append("\n");
+                }
+                System.out.println("Data exported successfully to " + filePath);
+            } catch (IOException e) {
+                System.err.println("Error writing to CSV: " + e.getMessage());
+            }
+
             optionValues = multiStepBinomialTree.getOptionValues();
             stockPrices = multiStepBinomialTree.getStockPrices();
 
@@ -303,5 +322,6 @@ public class OptionPricerGUI extends JFrame {
             expectedValueLabel.setText("");
         }
     }
+
 }
 

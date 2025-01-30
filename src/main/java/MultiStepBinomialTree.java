@@ -1,10 +1,18 @@
 import java.util.Arrays;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
 
 public class MultiStepBinomialTree {
     private final double optionPrice;
     private final double[][] optionValues;
     private final double[][] stockPrices;
     double[][] stockPriceMaturity;
+
+
+
+    private List<Double> optionPriceEvolution;
+
 
     /**
      * Implements a single-step binomial tree model for option pricing.
