@@ -2,7 +2,9 @@ import java.util.Arrays;
 
 public class MultiStepBinomialTree {
     private final double optionPrice;
-    private double[][] optionValues;
+    private final double[][] optionValues;
+    private final double[][] stockPrices;
+    double[][] stockPriceMaturity;
 
     /**
      * Implements a single-step binomial tree model for option pricing.
@@ -44,27 +46,23 @@ public class MultiStepBinomialTree {
 
         // Establishing an array of possible stock prices at maturity
         // After n steps the stock can be i times and down (steps - i) times
-        double[][] stockPriceMaturity = new double[steps + 1][((int)Math.pow(2, steps))];
-        optionValues = new double[steps + 1][((int)Math.pow(2, steps))];
-        for (int i = 0; i <= steps; i++) {
+        stockPriceMaturity = new double[steps + 1][steps + 1];
 
-        }
+        //TO DO: optimise array size
+        optionValues = new double[steps + 1][steps + 1];
+        stockPrices = new double[steps + 1][steps + 1];
 
         // Backward induction
         for (int step = steps; step >= 0; step--) {
-
-            System.out.println("----Step: " + step + " -----");
 
             for (int i = 0; i <= step; i++) {
 
                 int ups = i;
                 int downs = step - i;
                 stockPriceMaturity[step][i] = initialPrice * Math.pow(upFactor, ups) * Math.pow(downFactor, downs);
-                System.out.println("Stock price for " + i + " ups: " + stockPriceMaturity[step][i]);
 
                 // Initialising the possible options value at expiration
                 optionValues[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
-                System.out.println("Option price for " + i + " ups: " + optionValues[step][i]);
 
                 if (step == steps){
                     optionValues[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
@@ -72,6 +70,8 @@ public class MultiStepBinomialTree {
                 else {
                     optionValues[step][i] = calculateOptionValue(optionValues[step + 1][i], optionValues[step + 1][i + 1], interestRate, q);
                 }
+
+                //stockPrices[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
 
             }
         }
@@ -105,5 +105,11 @@ public class MultiStepBinomialTree {
     public double[][] getOptionValues() {
         return optionValues;
     }
+
+    public double[][] getStockPrices() {
+        System.out.printf("Stock Prices: " + Arrays.deepToString(stockPriceMaturity));
+        return stockPriceMaturity;
+    }
+
 
 }

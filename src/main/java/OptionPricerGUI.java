@@ -31,7 +31,7 @@ public class OptionPricerGUI extends JFrame {
     private final JCheckBox callOptionCheckBox;
 
     private BinomialTreePanel treePanel;
-    private DiagramWindow diagramWindow;
+    private final DiagramWindow diagramWindow;
 
     // Output components
     private final JLabel optionPriceLabel;
@@ -40,6 +40,7 @@ public class OptionPricerGUI extends JFrame {
     private final JLabel expectedValueLabel;
 
     private double[][] optionValues;
+    private double[][] stockPrices;
 
     public OptionPricerGUI() {
         setTitle("Simple Binomial Tree Option Pricing");
@@ -265,7 +266,8 @@ public class OptionPricerGUI extends JFrame {
         upFactorField.setText(String.format("%.5f", upFactorSlider.getValue() / 100.0));
         downFactorField.setText(String.format("%.2f", downFactorSlider.getValue() / 100.0));
         interestRateField.setText(String.valueOf(interestRateSlider.getValue()));
-        stepsField.setText(String.format("%.2f", stepsSlider.getValue() / 100.0));
+        stepsField.setText(String.format("%d", stepsSlider.getValue()));
+
     }
 
     private void calculateAndDisplay() {
@@ -276,7 +278,7 @@ public class OptionPricerGUI extends JFrame {
             double upFactor = upFactorSlider.getValue() / 100.0;
             double downFactor = downFactorSlider.getValue() / 100.0;
             double interestRate = interestRateSlider.getValue() / 100.0;
-            int steps = Math.round((float) stepsSlider.getValue());
+            int steps = stepsSlider.getValue(); // No need for Math.round since stepsSlider is integer
             boolean isCall = callOptionCheckBox.isSelected();
 
             SimpleBinomialTree binomialTree = new SimpleBinomialTree(initialPrice, strikePrice, probabilityUp,
@@ -284,9 +286,12 @@ public class OptionPricerGUI extends JFrame {
             MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, steps);
 
             optionValues = multiStepBinomialTree.getOptionValues();
+            stockPrices = multiStepBinomialTree.getStockPrices();
 
-            diagramWindow.updateTree(optionValues);
+            // Update the DiagramWindow with the latest data
+            diagramWindow.updateTree(optionValues, stockPrices);
 
+            // Update output labels
             optionPriceLabel.setText(String.format("Option Price: %.4f", multiStepBinomialTree.getOptionPrice()));
             deltaLabel.setText(String.format("Delta: %.4f", binomialTree.getDelta()));
             portfolioLabel.setText(String.format("Present Portfolio Value: %.4f", binomialTree.getPresentPortValue()));
@@ -295,6 +300,7 @@ public class OptionPricerGUI extends JFrame {
             optionPriceLabel.setText("Error: " + ex.getMessage());
             deltaLabel.setText("");
             portfolioLabel.setText("");
+            expectedValueLabel.setText("");
         }
     }
 }

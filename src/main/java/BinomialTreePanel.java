@@ -1,8 +1,11 @@
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 
 public class BinomialTreePanel extends JPanel {
     private double[][] optionValues;
+    private double[][] stockPrices;
+    private boolean showStockPrices;
 
     public BinomialTreePanel() {
         setPreferredSize(new Dimension(800, 600));
@@ -10,21 +13,31 @@ public class BinomialTreePanel extends JPanel {
 
     public void setOptionValues(double[][] optionValues) {
         this.optionValues = optionValues;
+        this.showStockPrices = false;
+        adjustPreferredSize();
+        repaint();
+    }
+
+    public void setStockPrices(double[][] stockPrices) {
+        this.stockPrices = stockPrices;
+        this.showStockPrices = true;
+        System.out.println("HERE: "+ Arrays.deepToString(stockPrices));
         adjustPreferredSize();
         repaint();
     }
 
     private void adjustPreferredSize() {
-        if (optionValues == null) return;
+        double[][] data = showStockPrices ? stockPrices : optionValues;
+        if (data == null) return;
 
-        int steps = optionValues.length;
+        int steps = data.length;
         int xSpacing = 150;
         int ySpacing = 80;
         int xStart = 100;
         int yStart = 100;
 
         int width = xStart + steps * xSpacing + 100;
-        int nodesInLastStep = steps; // Each step has step + 1 nodes
+        int nodesInLastStep = steps + 1; // Each step has step + 1 nodes
         int height = yStart + nodesInLastStep * ySpacing + 100;
 
         setPreferredSize(new Dimension(width, height));
@@ -34,7 +47,8 @@ public class BinomialTreePanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (optionValues == null) return;
+        double[][] data = showStockPrices ? stockPrices : optionValues;
+        if (data == null) return;
 
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -46,7 +60,7 @@ public class BinomialTreePanel extends JPanel {
         int xStart = 100;
         int yStart = 100;
 
-        int steps = optionValues.length;
+        int steps = data.length;
         int[][] nodeX = new int[steps][];
         int[][] nodeY = new int[steps][];
 
@@ -77,7 +91,7 @@ public class BinomialTreePanel extends JPanel {
                             nodeX[step + 1][node], nodeY[step + 1][node]);
                 }
                 // Connect to up node
-                if (node + 1 < step + 2) {
+                if (node  < step + 1) {
                     g2.drawLine(nodeX[step][node], nodeY[step][node],
                             nodeX[step + 1][node + 1], nodeY[step + 1][node + 1]);
                 }
@@ -99,7 +113,13 @@ public class BinomialTreePanel extends JPanel {
                 g2.drawOval(x - nodeRadius, y - nodeRadius, 2 * nodeRadius, 2 * nodeRadius);
 
                 // Draw value text
-                String value = String.format("$%.2f", optionValues[step][step - node]);
+                String value;
+                if (showStockPrices) {
+                    value = String.format("$%.2f", stockPrices[step][step - node]);
+                } else {
+                    value = String.format("$%.2f", optionValues[step][step - node]);
+                }
+
                 FontMetrics fm = g2.getFontMetrics();
                 int textWidth = fm.stringWidth(value);
                 int textHeight = fm.getHeight();
@@ -108,4 +128,5 @@ public class BinomialTreePanel extends JPanel {
             }
         }
     }
+
 }
