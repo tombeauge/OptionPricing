@@ -4,11 +4,11 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 public class OptionPricerGUI extends JFrame {
 
+    // Existing components
     private final JSlider initialPriceSlider;
     private final JTextField initialPriceField;
 
@@ -44,10 +44,14 @@ public class OptionPricerGUI extends JFrame {
     private double[][] optionValues;
     private double[][] stockPrices;
 
+    // New components for running Python script
+    private final JButton runPythonButton;
+    private final JTextArea pythonOutputArea;
+
     public OptionPricerGUI() {
         setTitle("Simple Binomial Tree Option Pricing");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(600, 600);
+        setSize(800, 700); // Increased size to accommodate output area
         setLayout(new BorderLayout());
 
         // Initialize panels
@@ -119,18 +123,33 @@ public class OptionPricerGUI extends JFrame {
 
         // Output panel
         JPanel outputPanel = new JPanel();
-        outputPanel.setLayout(new GridLayout(2, 1));
+        outputPanel.setLayout(new BorderLayout());
         outputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel labelsPanel = new JPanel();
+        labelsPanel.setLayout(new GridLayout(4, 1));
 
         optionPriceLabel = new JLabel("Option Price: ");
         deltaLabel = new JLabel("Delta: ");
         portfolioLabel = new JLabel("Present Portfolio Value: ");
         expectedValueLabel = new JLabel("Expected Value: ");
 
-        outputPanel.add(optionPriceLabel);
-        outputPanel.add(deltaLabel);
-        outputPanel.add(portfolioLabel);
-        outputPanel.add(expectedValueLabel);
+        labelsPanel.add(optionPriceLabel);
+        labelsPanel.add(deltaLabel);
+        labelsPanel.add(portfolioLabel);
+        labelsPanel.add(expectedValueLabel);
+
+        outputPanel.add(labelsPanel, BorderLayout.NORTH);
+
+        // Initialize the Run Python Script button
+        runPythonButton = new JButton("Run Python Script");
+        outputPanel.add(runPythonButton, BorderLayout.CENTER);
+
+        // Initialize the Python Output Area
+        pythonOutputArea = new JTextArea(10, 50);
+        pythonOutputArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(pythonOutputArea);
+        outputPanel.add(scrollPane, BorderLayout.SOUTH);
 
         add(outputPanel, BorderLayout.SOUTH);
 
@@ -236,6 +255,14 @@ public class OptionPricerGUI extends JFrame {
             }
         });
 
+        // Add ActionListener to the Run Python Script button
+        runPythonButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                runPythonScript();
+            }
+        });
+
         // Initial calculation
         calculateAndDisplay();
     }
@@ -265,11 +292,10 @@ public class OptionPricerGUI extends JFrame {
         initialPriceField.setText(String.valueOf(initialPriceSlider.getValue()));
         strikePriceField.setText(String.valueOf(strikePriceSlider.getValue()));
         probabilityUpField.setText(String.format("%.2f", probabilityUpSlider.getValue() / 100.0));
-        upFactorField.setText(String.format("%.5f", upFactorSlider.getValue() / 100.0));
+        upFactorField.setText(String.format("%.2f", upFactorSlider.getValue() / 100.0));
         downFactorField.setText(String.format("%.2f", downFactorSlider.getValue() / 100.0));
-        interestRateField.setText(String.valueOf(interestRateSlider.getValue()));
+        interestRateField.setText(String.format("%.2f", interestRateSlider.getValue() / 100.0));
         stepsField.setText(String.format("%d", stepsSlider.getValue()));
-
     }
 
     private void calculateAndDisplay() {
@@ -291,10 +317,8 @@ public class OptionPricerGUI extends JFrame {
                 writer.append("Step,OptionPrice\n");
 
                 for (int i = 1; i <= 100; i++) {
-
                     MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, i);
-
-                    writer.append((String.valueOf(i)))
+                    writer.append(String.valueOf(i))
                             .append(",")
                             .append(String.valueOf(largeBinomialTree.getOptionPrice()))
                             .append("\n");
@@ -323,5 +347,49 @@ public class OptionPricerGUI extends JFrame {
         }
     }
 
-}
+    private void runPythonScript() {
+        // Define the path to the Python interpreter
+        String pythonInterpreter = "python3"; // Assumes 'python3' is in the system PATH
 
+        // Define the relative path to the Python script
+        String pythonScript = "src/main/python/RunGUI.py";
+
+        // Create a ProcessBuilder instance with relative paths
+        ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, pythonScript);
+
+        // Set the working directory to the project's root directory
+        // (Assuming the Java application is run from the project's root)
+        processBuilder.directory(new File(System.getProperty("user.dir")));
+
+        // Optional: Redirect error stream to standard output
+        processBuilder.redirectErrorStream(true);
+
+        try {
+            // Start the process
+            Process process = processBuilder.start();
+
+            // Read the output from the command
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            // Wait for the process to complete
+            int exitCode = process.waitFor();
+
+            // Display the output and errors in the JTextArea
+            if (exitCode == 0) {
+                pythonOutputArea.setText("Python script executed successfully:\n" + output.toString());
+            } else {
+                pythonOutputArea.setText("Python script execution failed with exit code " + exitCode + ":\n" + output.toString());
+            }
+
+        } catch (IOException | InterruptedException ex) {
+            ex.printStackTrace();
+            pythonOutputArea.setText("An error occurred while executing the Python script:\n" + ex.getMessage());
+        }
+    }
+}
