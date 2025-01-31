@@ -8,6 +8,14 @@
 \usepackage{biblatex}
 \usepackage{tcolorbox}
 \usepackage{amsthm}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{fvextra}
+\usepackage[a4paper, margin=1.2in]{geometry}
+
+
+\graphicspath{ {./images/} }
 
 \title{Reflections on Option Pricing Models}
 \author{Tom Beaugé}
@@ -15,8 +23,8 @@
 
 \tcbset{
     note/.style={
-        colback=blue!5,        % Background color
-        colframe=blue!75!black, % Frame color
+        colback=black!5,        % Background color
+        colframe=black!75, % Frame color
         fonttitle=\bfseries,
         title=Note,
         arc=4mm,               % Rounded corners
@@ -27,6 +35,7 @@
         bottom=6pt,
     }
 }
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true}
 
 \begin{document}
 
@@ -95,7 +104,7 @@
     By pricing the option in such a way, we are hedged against any possible fluctuation in price, as the arbitrary probability \emph{p} that the option will increase in price appears at no point in our pricing calculations.
     Playing around with the expected value, I was also able to notice that for a specific probability \emph{p}, the expected value matched the pricing of my option echoing the First Fundamental Theorem of Asset Pricing applies here.
 
-    \begin{tcolorbox}[mynote, title=First Fundamental Theorem of Asset Pricing]
+    \begin{tcolorbox}[note, title=First Fundamental Theorem of Asset Pricing]
         The \textbf{First Fundamental Theorem of Asset Pricing} states that a financial market is \textbf{arbitrage-free} if and only if there exists at least one \textbf{equivalent martingale measure} (also known as a risk-neutral measure).
 
         In other words, the absence of arbitrage opportunities in a market is equivalent to the existence of a probability measure under which discounted asset prices follow a martingale process.
@@ -121,7 +130,7 @@
     Thus, solving for the risk-neutral probability \(p\) yields:
 
     \[
-        p = \frac{R - d}{u - d}
+        p = \frac{1 + r - d}{u - d}
     \]
 
     \subsubsection{Limits}
@@ -143,5 +152,186 @@
         \item \textbf{American Options}: Incorporating early exercise features via dynamic programming.
         \item \textbf{Volatility}: Experimenting with time-varying \( u \) and \( d \) to model volatility.
     \end{itemize}
+
+
+    \subsection{Going Multi-step}
+
+    The next step in my exploration was to extend the single-step binomial tree to a multi-period framework. 
+    This extension allows for a improvements in the modelisation of our asset price, allowing us to have a rudimentary estimate of the option's price over a larger period of time.
+    The fluctuations in the asset price are still binary, but this new improvement allow us to better represent the random walk of our asset.
+
+    \subsubsection{Implementation}
+
+    To simplify the calculations, I have decided to only carry the theory from our previous one-step model.
+    Our simple one-period option was priced using the hedge ratio \(\Delta\). 
+    However, to make the computation more straightforward, I have chosen to reuse the risk-neutral probability \(p\) we found earlier to price the option at each node.
+
+    \begin{enumerate}
+    
+        \item \textbf{Building the Stock Price Tree:} A two-dimensional array is used to store the possible stock prices at maturity. At each node corresponding to \( i \) upward movements (and \( n-i \) downward movements) after \( n \) steps, the stock price is calculated as:
+        \[
+        S_{n,i} = S_0 \, u^i \, d^{n-i},
+        \]
+        where \( S_0 \) is the initial stock price.
+        
+        \item \textbf{Option Payoff Calculation:} At maturity, the option payoff is computed at each node. For a call option, the payoff is:
+        \[
+        \text{Payoff} = \max(S_{n,i} - K, 0),
+        \]
+        and for a put option:
+        \[
+        \text{Payoff} = \max(K - S_{n,i}, 0),
+        \]
+        where \( K \) is the strike price.
+        
+        \item \textbf{Backward Induction:} After setting the terminal payoffs, the tree is traversed backward to compute the option value at earlier nodes. At each node, the option value is obtained as:
+        \[
+        V_{i,j} = \frac{p \, V_{\text{up}} + (1 - p) \, V_{\text{down}}}{1 + r},
+        \]
+        where:
+        \begin{itemize}
+            \item \( V_{\text{up}} \) is the option value from the node corresponding to an upward movement,
+            \item \( V_{\text{down}} \) is the option value from the node corresponding to a downward movement,
+            \item \( 1 + r \) is used to incorporate the risk-free rate per period.
+        \end{itemize}
+        This backward induction continues until the root node is reached, where the option price at time zero is obtained.
+    \end{enumerate}
+
+
+    A short code excerpt is shown below:
+
+    \small
+    \begin{verbatim}
+    public MultiStepBinomialTree(double initialPrice, double strikePrice,
+            double probabilityUp, double upFactor, double downFactor,
+            double interestRate, boolean isCall, int steps) {
+
+        // Calculate risk-neutral probability: q = (1 + r - d) / (u - d)
+        double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
+
+        // Initialize arrays for stock prices and option values
+        stockPriceMaturity = new double[steps + 1][steps + 1];
+        optionValues = new double[steps + 1][steps + 1];
+
+        // Backward induction to build the tree and calculate option values
+        for (int step = steps; step >= 0; step--) {
+            for (int i = 0; i <= step; i++) {
+                // Calculate stock price at the node: S = initialPrice * u^i * d^(step-i)
+                stockPriceMaturity[step][i] = initialPrice * Math.pow(upFactor, i) * Math.pow(downFactor, step - i);
+
+                // Set option payoff at maturity or compute the option value by backward induction
+                if (step == steps) {
+                    optionValues[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
+                } else {
+                    optionValues[step][i] = calculateOptionValue(optionValues[step + 1][i], optionValues[step + 1][i + 1], interestRate, q);
+                }
+            }
+        }
+    }
+    \end{verbatim}
+
+    \normalsize
+
+    \emph{Note:} The code snippet is a simplified version of the actual implementation, which includes additional error handling and input validation.
+
+    \medbreak
+
+    The final option price is available as the value of the root node of the tree, i.e., \texttt{optionValues[0][0]}. This represents the present value of the option under the given parameters and assumptions of the binomial model.
+
+    \medbreak
+
+    \textbf{Example Case}
+    To illustrate the implementation, consider the following example:
+
+    \begin{itemize}
+        \item Initial stock price (\( S_0 \)): \$100
+        \item Strike price (\( K \)): \$105
+        \item Up factor (\( u \)): 1.1
+        \item Down factor (\( d \)): 0.9
+        \item Risk-free rate (\( r \)): 5\% per period
+        \item Number of steps: 3
+        \item Option type: Put
+    \end{itemize}
+
+    \clearpage
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{Example1_BinTree_OptionValue}
+        \caption{Option values for a 3-step tree}
+        \label{fig:3_step_option_tree}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.4]{Example1_BinTree_StockPrice}
+        \caption{Stock prices}
+        \label{fig:3_step_stock_price_tree}
+    \end{figure}
+
+    The rightmost nodes in Figure~\ref{fig:3_step_option_tree} show the payoffs of the put option at expiration, computed as:
+    \[
+    P_T = \max(K - S_T, 0)
+    \]
+    Some nodes have a value of \$0.00, indicating that the stock price was above the strike price at expiration, making the put option worthless.
+
+    \medskip
+
+    The deeper the stock price falls below \( K = 105 \), the higher the put option value. The highest option price is observed in paths where the stock price significantly declines.
+
+    The root node of the tree gives an option price of \$17.49, which represents the fair value of the put option under these assumptions.
+
+    \subsubsection{Insights}
+
+
+    The following figure illustrates the evolution of computation time as the number of steps increases in the multi-step binomial tree model.
+
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.8\textwidth]{ComputationTime_BinTree_v1}
+        \caption{Computation time of each step in the binomial tree model (1000 steps)}
+        \label{fig:computation_time_bintree_v1}
+    \end{figure}
+
+    The observed quadratic trend in computation time suggests that the model’s complexity scales poorly with large steps. Optimization strategies such as dynamic programming, parallel processing, and memory-efficient algorithms should be explored to improve performance.
+    If we look at the code snippet above, the time complexity is dominated by the nested loops:
+
+    \bigbreak
+
+    Outer loop: Iterates over steps from \( n \) to \( 0 \) (total \( n + 1 \) steps).
+    Inner loop: For each step \( s \), iterates \( i \) from \( 0 \) to \( s \) (total \( s + 1 \) iterations per step).
+
+    \medbreak
+    Per-node operations:
+    
+
+    For each node \( ( \text{step}, i ) \), \texttt{calculateOptionValue} computes the option value using:
+
+    \[
+    \text{Value} = \frac{q \cdot \text{Payoff}_{\text{Up}} + (1 - q) \cdot \text{Payoff}_{\text{Down}}}{1 + r}
+    \]
+
+    This involves constant-time operations (addition, multiplication, division), so it contributes \( O(1) \) per node.
+    
+    This simplifies to a time complexity of:
+    \[
+    O(n^2)
+    \]
+
+    \textbf{Per-Node Operations}
+    \medskip
+    For each node \( (s, i) \):
+    \begin{itemize}
+        \item Computes stock price: \( \text{initialPrice} \times (\text{upFactor})^i \times (\text{downFactor})^{s-i} \) (constant time).
+        \item Computes option payoff (constant-time comparison).
+        \item Discounts future values via \texttt{calculateOptionValue} where for each node, \texttt{calculateOptionValue} computes the option value using:
+
+        \[
+        \text{Value} = \frac{p \cdot \text{Payoff}_{\text{Up}} + (1 - p) \cdot \text{Payoff}_{\text{Down}}}{1 + r}
+        \]
+    
+        This involves constant-time operations, so it contributes \( O(1) \) per node.
+    \end{itemize}
+
 
 \end{document}
