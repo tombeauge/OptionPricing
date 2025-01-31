@@ -312,26 +312,16 @@
     \]
 
     This involves constant-time operations (addition, multiplication, division), so it contributes \( O(1) \) per node.
+
+    \medskip
     
     This simplifies to a time complexity of:
     \[
     O(n^2)
     \]
 
-    \textbf{Per-Node Operations}
-    \medskip
-    For each node \( (s, i) \):
-    \begin{itemize}
-        \item Computes stock price: \( \text{initialPrice} \times (\text{upFactor})^i \times (\text{downFactor})^{s-i} \) (constant time).
-        \item Computes option payoff (constant-time comparison).
-        \item Discounts future values via \texttt{calculateOptionValue} where for each node, \texttt{calculateOptionValue} computes the option value using:
 
-        \[
-        \text{Value} = \frac{p \cdot \text{Payoff}_{\text{Up}} + (1 - p) \cdot \text{Payoff}_{\text{Down}}}{1 + r}
-        \]
-    
-        This involves constant-time operations, so it contributes \( O(1) \) per node.
-    \end{itemize}
+
 
 
 \end{document}

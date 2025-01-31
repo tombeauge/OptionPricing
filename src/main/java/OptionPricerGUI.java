@@ -103,11 +103,12 @@ public class OptionPricerGUI extends JFrame {
         inputPanel.add(downFactorField);
 
         // Interest Rate
-        interestRateSlider = createSlider(0, 100, 0, 5); // Represents 0% to 100%
+        interestRateSlider = createSlider(-25, 25, 0, 5); // Now allows -25% to 25%
         interestRateField = createTextField("0.05");
         inputPanel.add(new JLabel("Interest Rate:"));
         inputPanel.add(interestRateSlider);
         inputPanel.add(interestRateField);
+
 
         // Steps Number
         stepsSlider = createSlider(0, 50, 3, 5);
@@ -305,16 +306,16 @@ public class OptionPricerGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     double value = Double.parseDouble(interestRateField.getText());
-                    if (value < 0.0) {
-                        throw new NumberFormatException("Interest Rate cannot be negative.");
+                    if (value < -0.25 || value > 0.25) {
+                        throw new NumberFormatException("Interest Rate must be between -0.25 and 0.25.");
                     }
-                    int sliderValue = (int) (value * 100);
+                    int sliderValue = (int) (value * 100); // Convert to match slider scale
                     interestRateSlider.setValue(sliderValue);
                 } catch (NumberFormatException ex) {
                     LOGGER.log(Level.WARNING, "Invalid Interest Rate input: " + interestRateField.getText());
                     JOptionPane.showMessageDialog(
                             OptionPricerGUI.this,
-                            "Invalid Interest Rate! Please enter a valid non-negative decimal.",
+                            "Invalid Interest Rate! Please enter a value between -0.25 and 0.25.",
                             "Input Error",
                             JOptionPane.ERROR_MESSAGE
                     );
@@ -422,7 +423,7 @@ public class OptionPricerGUI extends JFrame {
         probabilityUpField.setText(String.format("%.2f", probabilityUpSlider.getValue() / 100.0));
         upFactorField.setText(String.format("%.2f", upFactorSlider.getValue() / 100.0));
         downFactorField.setText(String.format("%.2f", downFactorSlider.getValue() / 100.0));
-        interestRateField.setText(String.format("%.2f", interestRateSlider.getValue() / 100.0));
+        interestRateField.setText(String.format("%.2f", interestRateSlider.getValue() / 100.0)); // Now supports negative values
         stepsField.setText(String.format("%d", stepsSlider.getValue()));
     }
 

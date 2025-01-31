@@ -35,6 +35,10 @@ public class MultiStepBinomialTree {
             throw new IllegalArgumentException("Steps must be greater than zero");
         }
 
+        if (upFactor <= interestRate + 1 || downFactor >= interestRate + 1) {
+            throw new IllegalArgumentException("Proprety u > 1 + r > d > 0 must hold");
+        }
+
         // Calculating risk-neutral probability using discrete compounding
         double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
 
@@ -69,7 +73,7 @@ public class MultiStepBinomialTree {
      */
     private double calculateRiskNeutralProbability(double upFactor, double downFactor, double interestRate) {
         double q = (1 + interestRate - downFactor) / (upFactor - downFactor);
-        if (q < 0 || q > 1) {
+        if (q <= 0 || q >= 1) {
             throw new IllegalArgumentException("Invalid risk-neutral probability; check model parameters");
         }
         return q;
