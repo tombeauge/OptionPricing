@@ -1,4 +1,5 @@
 target/
+ressources/
 
 # LaTeX Auxiliary Files
 *.aux
