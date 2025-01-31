@@ -1,0 +1,21 @@
+target/
+ressources/
+
+# LaTeX Auxiliary Files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.swp
+
