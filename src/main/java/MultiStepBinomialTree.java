@@ -1,28 +1,16 @@
 import java.util.Arrays;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 
 public class MultiStepBinomialTree {
     private final double optionPrice;
     private final double[][] optionValues;
     private final double[][] stockPrices;
-    double[][] stockPriceMaturity;
-
-
+    private double[][] stockPriceMaturity;
 
     private List<Double> optionPriceEvolution;
 
-
     /**
-     * Implements a single-step binomial tree model for option pricing.
-     * <p>
-     * This model is inspired by:
-     * - Wilmott, P. (2013). *Paul Wilmott on Quantitative Finance*, Chapter 15.
-     * - [YouTube Video by Perfiliev Financial Training](https://www.youtube.com/watch?v=eA5AtTx3rRI)
-     * <p>
-     * The binomial tree method provides a discrete-time framework for modeling
-     * the underlying asset's price dynamics and valuing financial derivatives.
+     * Implements a multi-step binomial tree model for option pricing.
      *
      * @param initialPrice  Initial asset price.
      * @param strikePrice   Strike price of the option.
@@ -47,58 +35,58 @@ public class MultiStepBinomialTree {
             throw new IllegalArgumentException("Steps must be greater than zero");
         }
 
-        // Calculating risk-neutral probability
+        // Calculating risk-neutral probability using discrete compounding
         double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
 
         // Establishing an array of possible stock prices at maturity
-        // After n steps the stock can be i times and down (steps - i) times
         stockPriceMaturity = new double[steps + 1][steps + 1];
 
-        //TO DO: optimise array size
+        // Optimized array size
         optionValues = new double[steps + 1][steps + 1];
         stockPrices = new double[steps + 1][steps + 1];
 
         // Backward induction
         for (int step = steps; step >= 0; step--) {
-
             for (int i = 0; i <= step; i++) {
-
                 int ups = i;
                 int downs = step - i;
                 stockPriceMaturity[step][i] = initialPrice * Math.pow(upFactor, ups) * Math.pow(downFactor, downs);
 
-                // Initialising the possible options value at expiration
-                optionValues[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
-
-                if (step == steps){
+                // Initializing the possible options value at expiration
+                if (step == steps) {
                     optionValues[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
-                }
-                else {
+                } else {
                     optionValues[step][i] = calculateOptionValue(optionValues[step + 1][i], optionValues[step + 1][i + 1], interestRate, q);
                 }
-
-                //stockPrices[step][i] = calculateOptionPayoff(stockPriceMaturity[step][i], strikePrice, isCall);
-
             }
         }
 
         optionPrice = optionValues[0][0];
     }
 
+    /**
+     * Computes the risk-neutral probability using discrete compounding.
+     */
     private double calculateRiskNeutralProbability(double upFactor, double downFactor, double interestRate) {
-        double q = (Math.exp(interestRate) - downFactor) / (upFactor - downFactor);
+        double q = (1 + interestRate - downFactor) / (upFactor - downFactor);
         if (q < 0 || q > 1) {
             throw new IllegalArgumentException("Invalid risk-neutral probability; check model parameters");
         }
         return q;
     }
 
+    /**
+     * Computes the payoff of the option at expiration.
+     */
     private double calculateOptionPayoff(double stockPrice, double strikePrice, boolean isCall) {
         return isCall ? Math.max(stockPrice - strikePrice, 0) : Math.max(strikePrice - stockPrice, 0);
     }
 
+    /**
+     * Computes the option value at a given node using discrete discounting.
+     */
     private double calculateOptionValue(double payoffUp, double payoffDown, double interestRate, double riskNeutralProb) {
-        return (payoffUp * riskNeutralProb + payoffDown * (1 - riskNeutralProb)) * Math.exp(interestRate);
+        return (payoffUp * riskNeutralProb + payoffDown * (1 - riskNeutralProb)) / (1 + interestRate);
     }
 
     // Getter methods
@@ -113,6 +101,4 @@ public class MultiStepBinomialTree {
     public double[][] getStockPrices() {
         return stockPriceMaturity;
     }
-
-
 }

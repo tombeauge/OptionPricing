@@ -23,7 +23,9 @@ def main():
         print(f"CSV file not found at {csv_path}.")
         sys.exit(1)
 
-    # Plot the Option Price vs. Steps
+    # ---------------------------
+    # Plot 1: Option Price Evolution
+    # ---------------------------
     plt.figure(figsize=(10, 6))
     plt.plot(df['Step'], df['OptionPrice'], marker='o', linestyle='-', color='b', label='Option Price')
     plt.title('Option Price Evolution')
@@ -31,21 +33,45 @@ def main():
     plt.ylabel('Option Price')
     plt.grid(True)
 
-    # Annotate computation time on the graph
+    # Annotate overall computation time on the graph
     plt.annotate(f'Computation Time: {computation_time:.4f} seconds',
                  xy=(-0.1, -0.1), xycoords='axes fraction',
                  fontsize=12, color='black',
                  horizontalalignment='left', verticalalignment='top')
 
-    # Add legend
     plt.legend()
 
-    # Save the plot as an image
-    plot_path = f"src/main/resources/OptionPriceEvolution.png"
-    plt.savefig(plot_path)
-    plt.show()
+    # Save the Option Price Evolution plot as an image
+    option_plot_path = "src/main/resources/OptionPriceEvolution.png"
+    plt.savefig(option_plot_path)
+    print(f"Option Price Evolution plot saved successfully at {option_plot_path}.")
 
-    print(f"Plot saved successfully at {plot_path}.")
+    # ---------------------------
+    # Plot 2: Computation Time Evolution
+    # ---------------------------
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['Step'], df['ComputationTime'], marker='o', linestyle='-', color='r', label='Computation Time')
+    plt.title('Computation Time Evolution')
+    plt.xlabel('Step')
+    plt.ylabel('Computation Time (milliseconds)')
+    plt.grid(True)
+
+    # Annotate overall computation time on the graph
+    plt.annotate(f'Total Computation Time: {computation_time:.4f} seconds',
+                 xy=(-0.1, -0.1), xycoords='axes fraction',
+                 fontsize=12, color='black',
+                 horizontalalignment='left', verticalalignment='top')
+
+
+    plt.legend()
+
+    # Save the Computation Time Evolution plot as an image
+    comp_plot_path = "src/main/resources/ComputationTimeEvolution.png"
+    plt.savefig(comp_plot_path)
+    print(f"Computation Time Evolution plot saved successfully at {comp_plot_path}.")
+
+    # Display both figures in separate windows
+    plt.show()
 
 if __name__ == "__main__":
     main()

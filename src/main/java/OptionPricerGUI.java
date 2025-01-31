@@ -372,7 +372,7 @@ public class OptionPricerGUI extends JFrame {
                         long startTime = System.currentTimeMillis();
                         calculateAndDisplay();
                         long endTime = System.currentTimeMillis();
-                        double computationTime = (endTime - startTime) / 100000.0; // in seconds
+                        double computationTime = (endTime - startTime) / 1000.0; // in seconds
 
                         // Proceed to run the Python script with the computationTime
                         runPythonScript(computationTime);
@@ -428,8 +428,8 @@ public class OptionPricerGUI extends JFrame {
 
     private void calculateAndDisplay() {
         try {
-            // Record the start time
-            long startTime = System.currentTimeMillis();
+            // Record the overall start time
+            long overallStartTime = System.currentTimeMillis();
 
             double initialPrice = initialPriceSlider.getValue();
             double strikePrice = strikePriceSlider.getValue();
@@ -442,16 +442,33 @@ public class OptionPricerGUI extends JFrame {
 
             SimpleBinomialTree binomialTree = new SimpleBinomialTree(initialPrice, strikePrice, probabilityUp,
                     upFactor, downFactor, interestRate, isCall);
-            MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, steps);
+            MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp,
+                    upFactor, downFactor, interestRate, isCall, steps);
 
+            // Open the CSV file for writing.
+            // The file will now have three columns: Step, OptionPrice, and ComputationTime (in seconds)
             try (FileWriter writer = new FileWriter(filePath)) {
-                writer.append("Step,OptionPrice\n");
+                writer.append("Step,OptionPrice,ComputationTime\n");
 
                 for (int i = 1; i <= numberStepsGraph; i++) {
-                    MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, i);
+                    // Record the start time for this step in nanoseconds for better precision
+                    long stepStartTime = System.nanoTime();
+
+                    MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(
+                            initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, i);
+
+                    double stepOptionPrice = largeBinomialTree.getOptionPrice();
+
+                    // Record the end time for this step
+                    long stepEndTime = System.nanoTime();
+                    // Compute the elapsed time in milliseconds (nanoTime returns nanoseconds)
+                    double computationTime = (stepEndTime - stepStartTime) / 1_000_000.0;
+
                     writer.append(String.valueOf(i))
                             .append(",")
-                            .append(String.valueOf(largeBinomialTree.getOptionPrice()))
+                            .append(String.valueOf(stepOptionPrice))
+                            .append(",")
+                            .append(String.format("%.6f", computationTime))
                             .append("\n");
                 }
                 LOGGER.log(Level.INFO, "Data exported successfully to " + filePath);
@@ -478,11 +495,10 @@ public class OptionPricerGUI extends JFrame {
             portfolioLabel.setText(String.format("Present Portfolio Value: %.4f", binomialTree.getPresentPortValue()));
             expectedValueLabel.setText(String.format("Expected Value: %.4f", binomialTree.getExpectedValue()));
 
-            // Record the end time
-            long endTime = System.currentTimeMillis();
-
-            // Calculate duration in seconds with four decimal places
-            double duration = (endTime - startTime) / 100000.0;
+            // Record the overall end time (if needed for overall computation measurement)
+            long overallEndTime = System.currentTimeMillis();
+            double overallDuration = (overallEndTime - overallStartTime) / 1000.0;
+            LOGGER.log(Level.INFO, "Total computation time: " + overallDuration + " seconds");
 
         } catch (IllegalArgumentException ex) {
             optionPriceLabel.setText("Error: " + ex.getMessage());
@@ -515,10 +531,6 @@ public class OptionPricerGUI extends JFrame {
 
                 // Define the relative path to the Python script
                 String pythonScript = "src/main/python/OptionPriceBinomialTreeGraph.py";
-
-                // Use absolute paths for debugging (Uncomment if needed)
-                // pythonInterpreter = "/Users/t.beauge/Documents/EPFL/prog/projects/personal/OptionPricing/venv/bin/python";
-                // pythonScript = "/Users/t.beauge/Documents/EPFL/prog/projects/personal/OptionPricing/src/main/python/OptionPriceBinomialTreeGraph.py";
 
                 // Create a ProcessBuilder instance with the computation time as an argument
                 ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, pythonScript, String.valueOf(computationTime));
