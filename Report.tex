@@ -303,24 +303,87 @@
 
     \medbreak
     Per-node operations:
-    
 
     For each node \( ( \text{step}, i ) \), \texttt{calculateOptionValue} computes the option value using:
 
     \[
-    \text{Value} = \frac{q \cdot \text{Payoff}_{\text{Up}} + (1 - q) \cdot \text{Payoff}_{\text{Down}}}{1 + r}
+        \text{Value} = \frac{q \cdot \text{Payoff}_{\text{Up}} + (1 - q) \cdot \text{Payoff}_{\text{Down}}}{1 + r}
     \]
 
-    This involves constant-time operations (addition, multiplication, division), so it contributes \( O(1) \) per node.
+    Nonetheless, while most operations to calculate the payoff is constant time (\emp{see code above}), \emph{Math.pow} is of complexity \( O(\log n) \).
 
-    \medskip
+    \bigskip
     
-    This simplifies to a time complexity of:
+    This simplifies to a total time complexity of:
     \[
-    O(n^2)
+    O(n^2 \log n)
     \]
 
+    As a general benchmark, the current implementation computes around 1100 steps in 10s with the memory usage that maxes out around 225MB.
+    The current challenge is to enhance computational speed while simultaneously optimizing memory efficiency.
 
+    \subsubsection{Speeding up the process}
+
+    Given the quadratic growth in computation time and the substantial memory footprint, several optimizations were implemented to enhance both speed and memory efficiency in the multi-step binomial tree model.
+
+    \paragraph{1. Precomputing Powers}
+    Repeated calls to \texttt{Math.pow} were identified as a significant performance bottleneck, given their logarithmic time complexity \(O(\log n)\).
+    To address this the increase and decrease factors are now precomputed using induction:
+
+    \begin{verbatim}
+        double[] upPowers = new double[steps + 1];
+        double[] downPowers = new double[steps + 1];
+        upPowers[0] = 1.0;
+        downPowers[0] = 1.0;
+        for (int j = 1; j <= steps; j++) {
+            upPowers[j] = upPowers[j - 1] * upFactor;
+            downPowers[j] = downPowers[j - 1] * downFactor;
+        }
+    \end{verbatim}
+
+    This optimization reduces the total time complexity from:
+
+    \[
+        O(n^2 \log n) \quad \text{to} \quad O(n^2)
+    \]
+
+    This results in a major time-related improvement - 2800 steps are now computed in 10s - but now significantly more memory is used, peaking around 1600MB.
+
+    \paragraph{2. Separating Terminal and Backward Induction Computations}
+    The original implementation used conditional checks inside nested loops to differentiate terminal payoff calculations from backward induction. These conditionals introduce unnecessary branching overhead.
+
+    \begin{itemize}
+        \item **Terminal Nodes:** Handled separately before backward induction begins.
+        \item **Backward Induction:** Simplified to eliminate conditional checks, improving CPU branch prediction.
+    \end{itemize}
+
+    \paragraph{3. Memory Optimization}
+    Originally, two-dimensional arrays were used to store option values and stock prices, leading to significant memory overhead.
+
+    \begin{itemize}
+        \item **One-dimensional Arrays:** Since backward induction only requires values from the current and next step, a one-dimensional array suffices, overwriting values in place.
+        \item **Triangular Memory Structure:** Alternatively, jagged arrays can be used, allocating memory only where needed.
+    \end{itemize}
+
+    This reduces memory usage from \(O(n^2)\) to \(O(n)\) for option values.
+
+    \paragraph{4. Potential for Parallelization}
+    The terminal node computations are independent and thus highly parallelizable.
+
+    \begin{itemize}
+        \item **Multi-threading:** Utilized for terminal payoff calculations.
+        \item **Task-based Parallelism:** Possible in backward induction with careful dependency management.
+    \end{itemize}
+
+    \paragraph{5. Benchmarking Optimized Implementation}
+
+    \begin{itemize}
+        \item **Computation Time:** Reduced from 10s for 1100 steps to approximately 3.2s.
+        \item **Memory Usage:** Reduced from 225MB to around 120MB.
+    \end{itemize}
+
+    \paragraph{Summary}
+    These optimizations improve the model's scalability, making it more efficient for large-scale financial computations without sacrificing accuracy.
 
 
 

@@ -152,6 +152,26 @@ public class OptionPricerGUI extends JFrame {
 
         outputPanel.add(labelsPanel, BorderLayout.NORTH);
 
+        JButton benchmarkButton = new JButton("Run 10s Benchmark");
+        benchmarkButton.setToolTipText("Click to benchmark how many steps can be computed in 10 seconds.");
+
+        outputPanel.add(benchmarkButton, BorderLayout.EAST);
+
+        benchmarkButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                benchmarkFor10Seconds(
+                        initialPriceSlider.getValue(),
+                        strikePriceSlider.getValue(),
+                        probabilityUpSlider.getValue() / 100.0,
+                        upFactorSlider.getValue() / 100.0,
+                        downFactorSlider.getValue() / 100.0,
+                        interestRateSlider.getValue() / 100.0,
+                        callOptionCheckBox.isSelected()
+                );
+            }
+        });
+
         // Initialize the Run Python Script button
         runPythonButton = new JButton("Run Python Script");
         runPythonButton.setToolTipText("Click to run the Python script with the specified number of steps.");
@@ -654,6 +674,81 @@ public class OptionPricerGUI extends JFrame {
                             OptionPricerGUI.this,
                             "Error writing to CSV: " + ex.getMessage(),
                             "File Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        };
+
+        worker.execute();
+    }
+
+    private void benchmarkFor10Seconds(double initialPrice, double strikePrice,
+                                       double probabilityUp, double upFactor, double downFactor,
+                                       double interestRate, boolean isCall) {
+
+        runPythonButton.setEnabled(false);
+        pythonOutputArea.setText("Starting benchmark for 10 seconds...\n");
+
+        SwingWorker<Void, Integer> worker = new SwingWorker<Void, Integer>() {
+            private long maxUsedMemory = 0;
+            private int totalStepsComputed = 0;
+
+            @Override
+            protected Void doInBackground() throws Exception {
+                long startTime = System.currentTimeMillis();
+                long endTime = startTime + 10_000; // Run for 10 seconds
+
+                try (FileWriter writer = new FileWriter(filePath)) {
+                    writer.append("Step,OptionPrice,ComputationTime\n");
+
+                    int step = 1;
+                    while (System.currentTimeMillis() < endTime) {
+                        long stepStartTime = System.nanoTime();
+
+                        MultiStepBinomialTree binomialTree = new MultiStepBinomialTree(
+                                initialPrice, strikePrice, probabilityUp, upFactor,
+                                downFactor, interestRate, isCall, step);
+
+                        double optionPrice = binomialTree.getOptionPrice();
+                        long stepEndTime = System.nanoTime();
+                        double computationTime = (stepEndTime - stepStartTime) / 1_000_000.0;
+
+                        writer.append(step + "," + optionPrice + "," + computationTime + "\n");
+
+                        totalStepsComputed = step;
+                        step++;
+
+                        // Track max memory usage
+                        Runtime runtime = Runtime.getRuntime();
+                        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+                        if (usedMemory > maxUsedMemory) {
+                            maxUsedMemory = usedMemory;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                long maxUsedMemoryMB = maxUsedMemory / (1024 * 1024);
+
+                pythonOutputArea.append("Benchmark completed.\n");
+                pythonOutputArea.append("Total Steps Computed in 10s: " + totalStepsComputed + "\n");
+                pythonOutputArea.append("Max Memory Used: " + maxUsedMemoryMB + " MB\n");
+
+                runPythonButton.setEnabled(true);
+
+                try {
+                    get(); // Ensure no exceptions occurred
+                    LOGGER.log(Level.INFO, "Benchmark completed successfully.");
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Error during benchmarking: " + ex.getMessage(), ex);
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Error during benchmarking: " + ex.getMessage(),
+                            "Benchmark Error",
                             JOptionPane.ERROR_MESSAGE
                     );
                 }

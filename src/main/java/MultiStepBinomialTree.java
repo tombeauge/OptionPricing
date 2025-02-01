@@ -45,16 +45,17 @@ public class MultiStepBinomialTree {
         // Establishing an array of possible stock prices at maturity
         stockPriceMaturity = new double[steps + 1][steps + 1];
 
-        // Optimized array size
         optionValues = new double[steps + 1][steps + 1];
         stockPrices = new double[steps + 1][steps + 1];
+
+        double[] upPowers = precomputePowers(upFactor, steps);
+        double[] downPowers = precomputePowers(downFactor, steps);
+
 
         // Backward induction
         for (int step = steps; step >= 0; step--) {
             for (int i = 0; i <= step; i++) {
-                int ups = i;
-                int downs = step - i;
-                stockPriceMaturity[step][i] = initialPrice * Math.pow(upFactor, ups) * Math.pow(downFactor, downs);
+                stockPriceMaturity[step][i] = initialPrice * upPowers[i] * downPowers[step - i];
 
                 // Initializing the possible options value at expiration
                 if (step == steps) {
@@ -91,6 +92,15 @@ public class MultiStepBinomialTree {
      */
     private double calculateOptionValue(double payoffUp, double payoffDown, double interestRate, double riskNeutralProb) {
         return (payoffUp * riskNeutralProb + payoffDown * (1 - riskNeutralProb)) / (1 + interestRate);
+    }
+
+    private double[] precomputePowers(double factor, int steps) {
+        double[] powers = new double[steps + 1];
+        powers[0] = 1.0;
+        for (int i = 1; i <= steps; i++) {
+            powers[i] = powers[i - 1] * factor;
+        }
+        return powers;
     }
 
     // Getter methods
