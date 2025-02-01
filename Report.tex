@@ -156,24 +156,24 @@
 
     \subsection{Going Multi-step}
 
-    The next step in my exploration was to extend the single-step binomial tree to a multi-period framework. 
+    The next step in my exploration was to extend the single-step binomial tree to a multi-period framework.
     This extension allows for a improvements in the modelisation of our asset price, allowing us to have a rudimentary estimate of the option's price over a larger period of time.
     The fluctuations in the asset price are still binary, but this new improvement allow us to better represent the random walk of our asset.
 
     \subsubsection{Implementation}
 
     To simplify the calculations, I have decided to only carry the theory from our previous one-step model.
-    Our simple one-period option was priced using the hedge ratio \(\Delta\). 
+    Our simple one-period option was priced using the hedge ratio \(\Delta\).
     However, to make the computation more straightforward, I have chosen to reuse the risk-neutral probability \(p\) we found earlier to price the option at each node.
 
     \begin{enumerate}
-    
+
         \item \textbf{Building the Stock Price Tree:} A two-dimensional array is used to store the possible stock prices at maturity. At each node corresponding to \( i \) upward movements (and \( n-i \) downward movements) after \( n \) steps, the stock price is calculated as:
         \[
         S_{n,i} = S_0 \, u^i \, d^{n-i},
         \]
         where \( S_0 \) is the initial stock price.
-        
+
         \item \textbf{Option Payoff Calculation:} At maturity, the option payoff is computed at each node. For a call option, the payoff is:
         \[
         \text{Payoff} = \max(S_{n,i} - K, 0),
@@ -183,7 +183,7 @@
         \text{Payoff} = \max(K - S_{n,i}, 0),
         \]
         where \( K \) is the strike price.
-        
+
         \item \textbf{Backward Induction:} After setting the terminal payoffs, the tree is traversed backward to compute the option value at earlier nodes. At each node, the option value is obtained as:
         \[
         V_{i,j} = \frac{p \, V_{\text{up}} + (1 - p) \, V_{\text{down}}}{1 + r},
@@ -313,7 +313,7 @@
     Nonetheless, while most operations to calculate the payoff is constant time (\emp{see code above}), \emph{Math.pow} is of complexity \( O(\log n) \).
 
     \bigskip
-    
+
     This simplifies to a total time complexity of:
     \[
     O(n^2 \log n)
