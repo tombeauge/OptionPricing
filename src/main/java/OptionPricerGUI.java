@@ -569,25 +569,21 @@ public class OptionPricerGUI extends JFrame {
                                          double probabilityUp, double upFactor, double downFactor,
                                          double interestRate, boolean isCall) {
 
-        // Disable any UI elements that shouldn't be clicked during a long run
         runPythonButton.setEnabled(false);
 
-        // Update the fields and write to CSV
-        // Measure computation time
         long startTime = System.currentTimeMillis();
 
         SwingWorker<Void, Integer> worker = new SwingWorker<Void, Integer>() {
+            private long maxUsedMemory = 0; // Track max memory usage
+
             @Override
             protected Void doInBackground() throws Exception {
-
                 LOGGER.log(Level.INFO, "number of steps graph: " + numberStepsGraph);
 
-                // Time-consuming tasks go here:
                 try (FileWriter writer = new FileWriter(filePath)) {
                     writer.append("Step,OptionPrice,ComputationTime\n");
 
                     for (int i = 1; i <= numberStepsGraph; i++) {
-                        // If user cancels (optional if you implement cancel logic), break early
                         if (isCancelled()) break;
 
                         long stepStartTime = System.nanoTime();
@@ -608,17 +604,20 @@ public class OptionPricerGUI extends JFrame {
                                 .append(String.format("%.6f", computationTime))
                                 .append("\n");
 
-                        // Optionally publish progress so you can update a JProgressBar
+                        // Update max memory usage
+                        Runtime runtime = Runtime.getRuntime();
+                        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+                        if (usedMemory > maxUsedMemory) {
+                            maxUsedMemory = usedMemory;
+                        }
+
                         publish(i);
                     }
 
                     long endTime = System.currentTimeMillis();
-                    double computationTime = (endTime - startTime) / 1000.0; // in seconds
-
+                    double computationTime = (endTime - startTime) / 1000.0;
                     LOGGER.log(Level.INFO, "Total computation time: " + computationTime + " seconds");
 
-
-                    // Proceed to run the Python script with the computationTime
                     runPythonScript(computationTime);
                 }
                 return null;
@@ -626,16 +625,26 @@ public class OptionPricerGUI extends JFrame {
 
             @Override
             protected void process(java.util.List<Integer> chunks) {
+
+                //TODO add new label
                 int latestStep = chunks.get(chunks.size() - 1);
-                memoryUsageLabel.setText("Writing step " + latestStep + "/" + numberStepsGraph);
+                expectedValueLabel.setText("Writing step " + latestStep + "/" + numberStepsGraph);
             }
 
             @Override
             protected void done() {
-                // Re-enable UI elements when complete
+                long endTime = System.currentTimeMillis();
+                double totalComputationTime = (endTime - startTime) / 1000.0;
+
+                // Convert max memory to MB and log
+                long maxUsedMemoryMB = maxUsedMemory / (1024 * 1024);
+                LOGGER.log(Level.INFO, "Max memory used during CSV generation: " + maxUsedMemoryMB + " MB");
+                pythonOutputArea.append("Max memory used during CSV generation: " + maxUsedMemoryMB + " MB\n");
+
+                LOGGER.log(Level.INFO, "Total computation time: " + totalComputationTime + " seconds");
+
                 runPythonButton.setEnabled(true);
                 try {
-                    // If any exception was thrown in doInBackground, get() will rethrow it
                     get();
                     LOGGER.log(Level.INFO, "Data exported successfully to " + filePath);
                     pythonOutputArea.append("Data exported successfully to " + filePath + "\n");
@@ -648,7 +657,6 @@ public class OptionPricerGUI extends JFrame {
                             JOptionPane.ERROR_MESSAGE
                     );
                 }
-
             }
         };
 
