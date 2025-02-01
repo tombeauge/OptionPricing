@@ -42,6 +42,7 @@ public class OptionPricerGUI extends JFrame {
     private final JLabel deltaLabel;
     private final JLabel portfolioLabel;
     private final JLabel expectedValueLabel;
+    private final JLabel memoryUsageLabel;
 
     private double[][] optionValues;
     private double[][] stockPrices;
@@ -141,11 +142,13 @@ public class OptionPricerGUI extends JFrame {
         deltaLabel = new JLabel("Delta: ");
         portfolioLabel = new JLabel("Present Portfolio Value: ");
         expectedValueLabel = new JLabel("Expected Value: ");
+        memoryUsageLabel = new JLabel("Memory Usage: 0 MB");
 
         labelsPanel.add(optionPriceLabel);
         labelsPanel.add(deltaLabel);
         labelsPanel.add(portfolioLabel);
         labelsPanel.add(expectedValueLabel);
+        labelsPanel.add(memoryUsageLabel);
 
         outputPanel.add(labelsPanel, BorderLayout.NORTH);
 
@@ -368,15 +371,18 @@ public class OptionPricerGUI extends JFrame {
                             }
                         }
 
-                        // Update the fields and write to CSV
-                        // Measure computation time
-                        long startTime = System.currentTimeMillis();
-                        calculateAndDisplay();
-                        long endTime = System.currentTimeMillis();
-                        double computationTime = (endTime - startTime) / 1000.0; // in seconds
+                        // Generate CSV in the background
+                        generateCsvInBackground(
+                                numberStepsGraph,
+                                initialPriceSlider.getValue(),
+                                strikePriceSlider.getValue(),
+                                probabilityUpSlider.getValue() / 100.0,
+                                upFactorSlider.getValue() / 100.0,
+                                downFactorSlider.getValue() / 100.0,
+                                interestRateSlider.getValue() / 100.0,
+                                callOptionCheckBox.isSelected()
+                        );
 
-                        // Proceed to run the Python script with the computationTime
-                        runPythonScript(computationTime);
 
                     } catch (NumberFormatException ex) {
                         // Inform the user about invalid input
@@ -391,6 +397,28 @@ public class OptionPricerGUI extends JFrame {
                 }
             }
         });
+
+        // Create a Swing Timer that updates the memory usage every 250 milliseconds
+        Timer memoryTimer = new Timer(250, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Get the runtime instance
+                Runtime runtime = Runtime.getRuntime();
+
+                // Calculate memory usage in bytes
+                long totalMemory = runtime.totalMemory();
+                long freeMemory = runtime.freeMemory();
+                long usedMemoryBytes = totalMemory - freeMemory;
+
+                // Convert to megabytes
+                long usedMemoryMB = usedMemoryBytes / (1024 * 1024);
+
+                // Update the label
+                memoryUsageLabel.setText("Memory Usage: " + usedMemoryMB + " MB");
+            }
+        });
+        memoryTimer.start(); // Start the timer
+
 
         // Initial calculation
         calculateAndDisplay();
@@ -429,8 +457,6 @@ public class OptionPricerGUI extends JFrame {
 
     private void calculateAndDisplay() {
         try {
-            // Record the overall start time
-            long overallStartTime = System.currentTimeMillis();
 
             double initialPrice = initialPriceSlider.getValue();
             double strikePrice = strikePriceSlider.getValue();
@@ -438,51 +464,13 @@ public class OptionPricerGUI extends JFrame {
             double upFactor = upFactorSlider.getValue() / 100.0;
             double downFactor = downFactorSlider.getValue() / 100.0;
             double interestRate = interestRateSlider.getValue() / 100.0;
-            int steps = stepsSlider.getValue(); // Unrelated to numberStepsGraph
+            int steps = stepsSlider.getValue();
             boolean isCall = callOptionCheckBox.isSelected();
 
             SimpleBinomialTree binomialTree = new SimpleBinomialTree(initialPrice, strikePrice, probabilityUp,
                     upFactor, downFactor, interestRate, isCall);
             MultiStepBinomialTree multiStepBinomialTree = new MultiStepBinomialTree(initialPrice, strikePrice, probabilityUp,
                     upFactor, downFactor, interestRate, isCall, steps);
-
-            // Open the CSV file for writing.
-            // The file will now have three columns: Step, OptionPrice, and ComputationTime (in seconds)
-            try (FileWriter writer = new FileWriter(filePath)) {
-                writer.append("Step,OptionPrice,ComputationTime\n");
-
-                for (int i = 1; i <= numberStepsGraph; i++) {
-                    // Record the start time for this step in nanoseconds for better precision
-                    long stepStartTime = System.nanoTime();
-
-                    MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(
-                            initialPrice, strikePrice, probabilityUp, upFactor, downFactor, interestRate, isCall, i);
-
-                    double stepOptionPrice = largeBinomialTree.getOptionPrice();
-
-                    // Record the end time for this step
-                    long stepEndTime = System.nanoTime();
-                    // Compute the elapsed time in milliseconds (nanoTime returns nanoseconds)
-                    double computationTime = (stepEndTime - stepStartTime) / 1_000_000.0;
-
-                    writer.append(String.valueOf(i))
-                            .append(",")
-                            .append(String.valueOf(stepOptionPrice))
-                            .append(",")
-                            .append(String.format("%.6f", computationTime))
-                            .append("\n");
-                }
-                LOGGER.log(Level.INFO, "Data exported successfully to " + filePath);
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Error writing to CSV: " + e.getMessage());
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Error writing to CSV: " + e.getMessage(),
-                        "File Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-                return;
-            }
 
             optionValues = multiStepBinomialTree.getOptionValues();
             stockPrices = multiStepBinomialTree.getStockPrices();
@@ -495,11 +483,6 @@ public class OptionPricerGUI extends JFrame {
             deltaLabel.setText(String.format("Delta: %.4f", binomialTree.getDelta()));
             portfolioLabel.setText(String.format("Present Portfolio Value: %.4f", binomialTree.getPresentPortValue()));
             expectedValueLabel.setText(String.format("Expected Value: %.4f", binomialTree.getExpectedValue()));
-
-            // Record the overall end time (if needed for overall computation measurement)
-            long overallEndTime = System.currentTimeMillis();
-            double overallDuration = (overallEndTime - overallStartTime) / 1000.0;
-            LOGGER.log(Level.INFO, "Total computation time: " + overallDuration + " seconds");
 
         } catch (IllegalArgumentException ex) {
             optionPriceLabel.setText("Error: " + ex.getMessage());
@@ -581,4 +564,95 @@ public class OptionPricerGUI extends JFrame {
         };
         worker.execute();
     }
+
+    private void generateCsvInBackground(int numberStepsGraph, double initialPrice, double strikePrice,
+                                         double probabilityUp, double upFactor, double downFactor,
+                                         double interestRate, boolean isCall) {
+
+        // Disable any UI elements that shouldn't be clicked during a long run
+        runPythonButton.setEnabled(false);
+
+        // Update the fields and write to CSV
+        // Measure computation time
+        long startTime = System.currentTimeMillis();
+
+        SwingWorker<Void, Integer> worker = new SwingWorker<Void, Integer>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+
+                LOGGER.log(Level.INFO, "number of steps graph: " + numberStepsGraph);
+
+                // Time-consuming tasks go here:
+                try (FileWriter writer = new FileWriter(filePath)) {
+                    writer.append("Step,OptionPrice,ComputationTime\n");
+
+                    for (int i = 1; i <= numberStepsGraph; i++) {
+                        // If user cancels (optional if you implement cancel logic), break early
+                        if (isCancelled()) break;
+
+                        long stepStartTime = System.nanoTime();
+
+                        MultiStepBinomialTree largeBinomialTree = new MultiStepBinomialTree(
+                                initialPrice, strikePrice, probabilityUp, upFactor, downFactor,
+                                interestRate, isCall, i);
+
+                        double stepOptionPrice = largeBinomialTree.getOptionPrice();
+
+                        long stepEndTime = System.nanoTime();
+                        double computationTime = (stepEndTime - stepStartTime) / 1_000_000.0;
+
+                        writer.append(String.valueOf(i))
+                                .append(",")
+                                .append(String.valueOf(stepOptionPrice))
+                                .append(",")
+                                .append(String.format("%.6f", computationTime))
+                                .append("\n");
+
+                        // Optionally publish progress so you can update a JProgressBar
+                        publish(i);
+                    }
+
+                    long endTime = System.currentTimeMillis();
+                    double computationTime = (endTime - startTime) / 1000.0; // in seconds
+
+                    LOGGER.log(Level.INFO, "Total computation time: " + computationTime + " seconds");
+
+
+                    // Proceed to run the Python script with the computationTime
+                    runPythonScript(computationTime);
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(java.util.List<Integer> chunks) {
+                int latestStep = chunks.get(chunks.size() - 1);
+                memoryUsageLabel.setText("Writing step " + latestStep + "/" + numberStepsGraph);
+            }
+
+            @Override
+            protected void done() {
+                // Re-enable UI elements when complete
+                runPythonButton.setEnabled(true);
+                try {
+                    // If any exception was thrown in doInBackground, get() will rethrow it
+                    get();
+                    LOGGER.log(Level.INFO, "Data exported successfully to " + filePath);
+                    pythonOutputArea.append("Data exported successfully to " + filePath + "\n");
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Error writing to CSV: " + ex.getMessage(), ex);
+                    JOptionPane.showMessageDialog(
+                            OptionPricerGUI.this,
+                            "Error writing to CSV: " + ex.getMessage(),
+                            "File Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+
+            }
+        };
+
+        worker.execute();
+    }
+
 }
