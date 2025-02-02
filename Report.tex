@@ -288,7 +288,7 @@
     \begin{figure}[h]
         \centering
         \includegraphics[width=0.8\textwidth]{ComputationTime_BinTree_v1}
-        \caption{Computation time of each step in the binomial tree model (1000 steps)}
+        \caption{Computation time for Binomial Trees up to 1000 steps)}
         \label{fig:computation_time_bintree_v1}
     \end{figure}
 
@@ -309,7 +309,7 @@
         \text{Value} = \frac{q \cdot \text{Payoff}_{\text{Up}} + (1 - q) \cdot \text{Payoff}_{\text{Down}}}{1 + r}
     \]
 
-    Nonetheless, while most operations to calculate the payoff is constant time (\emp{see code above}), \emph{Math.pow} is of complexity \( O(\log n) \).
+    Nonetheless, while most operations to calculate the payoff is constant time (\emph{see code above}), \emph{Math.pow} is of complexity \( O(\log n) \).
 
     \bigskip
 
@@ -318,7 +318,9 @@
     O(n^2 \log n)
     \]
 
-    As a general benchmark, the current implementation computes around 1100 steps in 10s with the memory usage that maxes out around 225MB.
+    \emph{note that the graphs rather represent a \( O(n^3 \log n) \) complexity as they plot binomials tree from 1 to n-steps}
+
+    As a general benchmark, the current implementation computes in 10 seconds binomial trees up to 1100 steps with the memory usage that maxes out around 225MB.
     The current challenge is to enhance computational speed while simultaneously optimizing memory efficiency.
 
     \subsubsection{Speeding up the process}
@@ -346,17 +348,19 @@
         O(n^2 \log n) \quad \text{to} \quad O(n^2)
     \]
 
-    This results in a major time-related improvement - 2800 steps are now computed in 10s - but now significantly more memory is used, peaking around 1600MB.
+    This results in a major time-related improvement - 2800 steps are now computed in 10 seconds - but now significantly more memory is used, peaking around 1600MB.
 
     \paragraph{2. Allocating jagged arrays}
     Instead of assigning a square array for our stock price and option value through time, leading to unnecessary empty entries, each row was allocated with the exact size they needed (i.e.\ step number + 1)
     \midskip
-    This led to some improvements in the memory usage which now maxes around 1300MB. Its time efficiency also increased reaching 3100 in 10 seconds.
+    This led to some improvements in the memory usage which now maxes around 1300MB. Its time efficiency also increased reaching 3100 steps in 10 seconds.
     This is hypothesized to be due to a reduction in garbage collection pressure as well as a better cache utilisation since no superfluous data is present.
 
     \paragraph{Summary}
 
     With the implementation of storing stock and option values for every node, the code has been optimised. Parallelising computations was deemed unnecessary, as most operations depend on previous inputs. While its implementation led to noticeable improvements, it was perhaps even counterproductive for smaller step sizes.
+    It could nonetheless be used to speed up the process of computing all binomial trees for our graphs since they are calculated independently but as of right now we have enough data points.
+    The focus should remain on establishing a valid and efficient model.
 
     \medskip
 
@@ -364,7 +368,7 @@
 
     \medskip
 
-    Overall, the performance upgrade is significant. Previously, computing 1000 steps took over 6 seconds, whereas the optimised program now completes the same task in under half a second. This improvement enables data extraction after a large number of steps, better reflecting the constant fluctuations of real-world assets. However, the \( O(n^2) \) time complexity still limits the model's long-term usability, highlighting the need for a more efficient model in this regard.
+    Overall, the performance upgrade is significant. Previously, computing trees up to 1000 steps took over 6 seconds, whereas the optimised program now completes the same task in under half a second. This improvement enables data extraction after a large number of steps, better reflecting the constant fluctuations of real-world assets. However, the \( O(n^2) \) time complexity still limits the model's long-term usability, highlighting the need for a more efficient model in this regard.
 
 
 \end{document}
