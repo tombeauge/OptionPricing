@@ -42,10 +42,14 @@ public class MultiStepBinomialTree {
         // Calculating risk-neutral probability using discrete compounding
         double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
 
-        // Establishing an array of possible stock prices at maturity
-        stockPriceMaturity = new double[steps + 1][steps + 1];
+        // Allocate jagged arrays (each row i has i+1 elements).
+        optionValues = new double[steps + 1][];
+        stockPriceMaturity = new double[steps + 1][];
+        for (int step = 0; step <= steps; step++) {
+            optionValues[step] = new double[step + 1];
+            stockPriceMaturity[step] = new double[step + 1];
+        }
 
-        optionValues = new double[steps + 1][steps + 1];
         stockPrices = new double[steps + 1][steps + 1];
 
         double[] upPowers = precomputePowers(upFactor, steps);
