@@ -349,6 +349,12 @@
 
     This results in a major time-related improvement - 2800 steps are now computed in 10s - but now significantly more memory is used, peaking around 1600MB.
 
+    \paragraph{2. Allocating jagged arrays}
+    Instead of assigning a square array for our stock price and option value through time, leading to unnecessary empty entries, each row was allocated with the exact size they needed (i.e.\ step number + 1)
+    \midskip
+    This led to some improvements in the memory usage which now maxes around 1300MB. Its time efficienty also increased reaching 3100 in 10 seconds.
+    This is hypothesized to be due to a reduction in garbage collection pressure as well as a better cache utilisation since no superfluous data is present.
+
     \paragraph{2. Separating Terminal and Backward Induction Computations}
     The original implementation used conditional checks inside nested loops to differentiate terminal payoff calculations from backward induction. These conditionals introduce unnecessary branching overhead.
 

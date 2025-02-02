@@ -2,6 +2,19 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
+
+def remove_outliers(df, column, window=50, threshold=3):
+    # Calculate the rolling mean and standard deviation
+    rolling_mean = df[column].rolling(window=window, center=True).mean()
+    rolling_std = df[column].rolling(window=window, center=True).std()
+
+    # Identify outliers as points deviating beyond the threshold
+    mask = (df[column] > (rolling_mean - threshold * rolling_std)) & \
+           (df[column] < (rolling_mean + threshold * rolling_std))
+
+    return df[mask]
+
+
 def main():
     if len(sys.argv) < 2:
         print("No computation time provided.")
@@ -49,8 +62,11 @@ def main():
     # ---------------------------
     # Plot 2: Computation Time Evolution
     # ---------------------------
+    # Remove outliers in ComputationTime using moving average method
+    df_clean = remove_outliers(df, 'ComputationTime')
+
     plt.figure(figsize=(10, 6))
-    plt.plot(df['Step'], df['ComputationTime'], marker='o', linestyle='-', color='r', label='Computation Time')
+    plt.plot(df_clean['Step'], df_clean['ComputationTime'], marker='o', linestyle='-', color='r', label='Computation Time')
     plt.title('Computation Time Evolution')
     plt.xlabel('Step')
     plt.ylabel('Computation Time (milliseconds)')
@@ -62,7 +78,6 @@ def main():
                  fontsize=12, color='black',
                  horizontalalignment='left', verticalalignment='top')
 
-
     plt.legend()
 
     # Save the Computation Time Evolution plot as an image
@@ -72,6 +87,7 @@ def main():
 
     # Display both figures in separate windows
     plt.show()
+
 
 if __name__ == "__main__":
     main()
