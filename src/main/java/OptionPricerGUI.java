@@ -10,6 +10,15 @@ import java.util.logging.Logger;
 
 public class OptionPricerGUI extends JFrame {
 
+    // Default values
+    private static final int DEFAULT_INITIAL_PRICE = 100;
+    private static final int DEFAULT_STRIKE_PRICE = 105;
+    private static final double DEFAULT_PROBABILITY_UP = 0.50;
+    private static final double DEFAULT_UP_FACTOR = 1.10;
+    private static final double DEFAULT_DOWN_FACTOR = 0.9;
+    private static final double DEFAULT_INTEREST_RATE = 0.05;
+    private static final int DEFAULT_STEPS = 3;
+
     // Existing components
     private final JSlider initialPriceSlider;
     private final JTextField initialPriceField;
@@ -69,51 +78,51 @@ public class OptionPricerGUI extends JFrame {
 
         // Initialize components
         // Initial Price
-        initialPriceSlider = createSlider(0, 200, 100, 10);
-        initialPriceField = createTextField("100");
+        initialPriceSlider = createSlider(0, 200, DEFAULT_INITIAL_PRICE, 10);
+        initialPriceField = createTextField(String.valueOf(DEFAULT_INITIAL_PRICE));
         inputPanel.add(new JLabel("Initial Price:"));
         inputPanel.add(initialPriceSlider);
         inputPanel.add(initialPriceField);
 
         // Strike Price
-        strikePriceSlider = createSlider(0, 200, 105, 10);
-        strikePriceField = createTextField("100");
+        strikePriceSlider = createSlider(0, 200, DEFAULT_STRIKE_PRICE, 10);
+        strikePriceField = createTextField(String.valueOf(DEFAULT_STRIKE_PRICE));
         inputPanel.add(new JLabel("Strike Price:"));
         inputPanel.add(strikePriceSlider);
         inputPanel.add(strikePriceField);
 
         // Probability Up
-        probabilityUpSlider = createSlider(0, 100, 50, 5);
-        probabilityUpField = createTextField("0.50");
+        probabilityUpSlider = createSlider(0, 100, (int) (DEFAULT_PROBABILITY_UP * 100), 5);
+        probabilityUpField = createTextField(String.valueOf(DEFAULT_PROBABILITY_UP));
         inputPanel.add(new JLabel("Probability Up:"));
         inputPanel.add(probabilityUpSlider);
         inputPanel.add(probabilityUpField);
 
         // Up Factor
-        upFactorSlider = createSlider(100, 200, 110, 5); // Represents 1.00 to 2.00
-        upFactorField = createTextField("1.50");
+        upFactorSlider = createSlider(100, 200, (int) (DEFAULT_UP_FACTOR * 100), 5);
+        upFactorField = createTextField(String.valueOf(DEFAULT_UP_FACTOR));
         inputPanel.add(new JLabel("Up Factor:"));
         inputPanel.add(upFactorSlider);
         inputPanel.add(upFactorField);
 
         // Down Factor
-        downFactorSlider = createSlider(0, 100, 90, 5); // Represents 0.00 to 1.00
-        downFactorField = createTextField("0.75");
+        downFactorSlider = createSlider(0, 100, (int) (DEFAULT_DOWN_FACTOR * 100), 5); // Represents 0.00 to 1.00
+        downFactorField = createTextField(String.valueOf(DEFAULT_DOWN_FACTOR));
         inputPanel.add(new JLabel("Down Factor:"));
         inputPanel.add(downFactorSlider);
         inputPanel.add(downFactorField);
 
         // Interest Rate
-        interestRateSlider = createSlider(-25, 25, 0, 5); // Now allows -25% to 25%
-        interestRateField = createTextField("0.05");
+        interestRateSlider = createSlider(-25, 25, (int) (DEFAULT_INTEREST_RATE * 100), 5); // Now allows -25% to 25%
+        interestRateField = createTextField(String.valueOf(DEFAULT_INTEREST_RATE));
         inputPanel.add(new JLabel("Interest Rate:"));
         inputPanel.add(interestRateSlider);
         inputPanel.add(interestRateField);
 
 
         // Steps Number
-        stepsSlider = createSlider(0, 50, 3, 5);
-        stepsField = createTextField("3");
+        stepsSlider = createSlider(0, 50, DEFAULT_STEPS, 5);
+        stepsField = createTextField(String.valueOf(DEFAULT_STEPS));
         inputPanel.add(new JLabel("Number of Steps:"));
         inputPanel.add(stepsSlider);
         inputPanel.add(stepsField);
