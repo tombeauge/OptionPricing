@@ -410,7 +410,7 @@
 
     where:
     \begin{itemize}
-        \item $\mu$is the drift
+        \item $\mu$ is the drift
         \item $\sigma$ is the volatility
         \item $W_t$ is the standard Brownian motion
     \end{itemize}
@@ -455,11 +455,7 @@
 
     In our case we may consider $W$ to be epsilon, thus $E[W] = 0$ and $\text{Var}(W) = 1$
 
-<<<<<<< HEAD
-    It follows that 
-=======
     It follows that
->>>>>>> f63c58d0700806a6808253f83594fbf57ce6d7a9
 
     \[E\!\left[e^{\sigma \sqrt{\delta t} \, \epsilon}\right] = e^{\frac{1}{2} \sigma^2 \delta t} \]
 
@@ -481,11 +477,7 @@
     Fistly,
 
     \begin{align*}
-<<<<<<< HEAD
-        \mathbb{E}\!\left[\left(\frac{S_{t+\delta t}}{S_t}\right)^2\right] 
-=======
-        \mathbb{E}\!\left[\left(\frac{S_{t+\delta t}}{S_t}\right)^2\right]
->>>>>>> f63c58d0700806a6808253f83594fbf57ce6d7a9
+        E\left[\left(\frac{S_{t+\delta t}}{S_t}\right)^2\right]
         &= \mathbb{E}\!\left[ e^{ 2 \delta t\left( \mu - \frac{1}{2} \sigma^2 \right) + 2 \sigma \sqrt{\delta t} \, \epsilon} \right] \\
         &= e^{2 \delta t\left( \mu - \frac{1}{2} \sigma^2 \right)} \cdot \mathbb{E}\!\left[e^{2 \sigma \sqrt{\delta t} \, \epsilon}\right] \\
         &= e^{2 \delta t\left( \mu - \frac{1}{2} \sigma^2 \right)} \cdot e^{2 \sigma^2 \delta t} \\
@@ -494,7 +486,7 @@
 
     Secondly,
 
-    \[E\!\left[\frac{S_{t+\delta t}}{S_t}\right]^2 = e^{2 \mu \delta t}\]
+    \[E\left[\frac{S_{t+\delta t}}{S_t}\right]^2 = e^{2 \mu \delta t}\]
 
     \bigskip
 
@@ -518,11 +510,7 @@
 We model the price movement over \( \delta t \) as a binary outcome:
 
 \[
-<<<<<<< HEAD
     \frac{S_{t+\delta t}}{S_t} = 
-=======
-    \frac{S_{t+\delta t}}{S_t} =
->>>>>>> f63c58d0700806a6808253f83594fbf57ce6d7a9
     \begin{cases}
         u, & \text{with probability } p, \\
         d, & \text{with probability } 1 - p.
@@ -532,27 +520,16 @@ We model the price movement over \( \delta t \) as a binary outcome:
 To ensure consistency with the GBM process, we match the first two moments (mean and variance) of this discrete distribution with those derived earlier.
 
 \paragraph{Matching the Expected Value}
-<<<<<<< HEAD
 From equation~(\ref{ev_bintree_dt}):
-=======
-From equation~(\eqref{ev_bintree_dt}):
->>>>>>> f63c58d0700806a6808253f83594fbf57ce6d7a9
 
 \[
     E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = p u + (1 - p) d = 1 + \mu \delta t
 \]
 
-<<<<<<< HEAD
 where we have used the approximation \( e^{\mu \delta t} \approx 1 + \mu \delta t \) for small \( \delta t \).
 
 \paragraph{Matching the Variance}
 From equation~(\ref{var_bintree_dt}):
-=======
-where we have used the aproximation \( e^{\mu \delta t} \approx 1 + \mu \delta t \) for small \( \delta t \).
-
-\paragraph{Matching the Variance}
-From equation~\eqref{var_bintree_dt}:
->>>>>>> f63c58d0700806a6808253f83594fbf57ce6d7a9
 
 \[
     \operatorname{Var}\!\left[\frac{S_{t+\delta t}}{S_t}\right] = p u^2 + (1 - p) d^2 - (p u + (1 - p) d)^2 = \sigma^2 \delta t
@@ -588,11 +565,7 @@ Expanding and simplifying under the assumption that \( \delta t \to 0 \), we obt
 
 
 
-<<<<<<< HEAD
-    \printbibliography
-=======
 \printbibliography
->>>>>>> f63c58d0700806a6808253f83594fbf57ce6d7a9
 
 \end{document}
 
