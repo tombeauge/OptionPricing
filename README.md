@@ -1,4 +1,5 @@
-# A Self-Directed Research Project into Quantitative finance
+# A Self-Directed Research Project in Quantitative Finance
+
 This project contains my exploration of different option pricing models as part of my personal studies in financial mathematics.
 As a first-year undergraduate student, I’m still new to this field, and this report reflects my evolving understanding of the concepts I’ve encountered so far.
 
