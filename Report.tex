@@ -5,7 +5,6 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsfonts}
-\usepackage{biblatex}
 \usepackage{tcolorbox}
 \usepackage{amsthm}
 \usepackage{listings}
@@ -13,6 +12,9 @@
 \usepackage{fvextra}
 \usepackage[a4paper, margin=1.2in]{geometry}
 \usepackage{upgreek}
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{References.bib}
+
 
 
 \graphicspath{ {./images/} }
@@ -357,7 +359,8 @@
 
     \paragraph{2. Allocating jagged arrays}
     Instead of assigning a square array for our stock price and option value through time, leading to unnecessary empty entries, each row was allocated with the exact size they needed (i.e.\ step number + 1)
-    \midskip
+
+
     This led to some improvements in the memory usage which now maxes around 1300MB. Its time efficiency also increased reaching 3100 steps in 10 seconds.
     This is hypothesized to be due to a reduction in garbage collection pressure as well as a better cache utilisation since no superfluous data is present.
 
@@ -414,6 +417,13 @@
 
     \bigskip
 
+    \begin{tcolorbox}[note, title=Stochastic Calculus]
+        A defining feature of stochastic calculus is its ability to handle processes whose paths are nowhere differentiable, such as Brownian motion.
+        Unlike smooth functions in standard calculus, the trajectory of a Brownian motion is highly irregular, exhibiting infinite fluctuations over any time interval, no matter how small.
+    \end{tcolorbox}
+
+    \bigskip
+
     Using a solution of this differential found on Wikipedia we find the following equation:
 
     \[
@@ -429,41 +439,132 @@
 
     \bigskip
 
-    Since the deterministic term is constant
+    Since the deterministic term is constant:
 
     \[E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = e^{\left( \mu - \frac{1}{2} \sigma^2 \right) \delta t} E\!\left[e^{\sigma \sqrt{\delta t} \, \epsilon}\right] \]
 
     \bigskip
 
-    An interesting property found in~\cite[p.~637]{probIntroRoss} can be used here:
+    An interesting formula found in~\cite[p.~637]{Ross2010} can be used here:
 
-    Our deterministic term is constant and our stochastic term is composed of the random variable $\epsilon$ scaled by a constant.
-    $\epsilon \sim N(0,1)$ thus $\operatorname{Var} \!\left[ \epsilon \right]  = 1$
+    \[E\left[e^{aW}\right] = e^{a E[W] + \frac{1}{2} a^2 \, \text{Var}(W)}\]
 
-    Using properties of the variance:
+    where $W$ is a standard normal random variable.
 
-    \[\operatorname{Var}\!\left[\ln\!\left(\frac{S_{t+\delta t}}{S_t}\right)\right] = \sigma^2\, \delta t\]
+    \bigskip
 
-    We may also use the following approximation
+    In our case we may consider $W$ to be epsilon, thus $E[W] = 0$ and $\text{Var}(W) = 1$
+
+    It follows that 
+
+    \[E\!\left[e^{\sigma \sqrt{\delta t} \, \epsilon}\right] = e^{\frac{1}{2} \sigma^2 \delta t} \]
+
+    Hence
+
+    \begin{equation}
+        \label{ev_bintree_dt}
+        E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = e^{\left( \mu - \frac{1}{2} \sigma^2 \right) \delta t} e^{\frac{1}{2} \sigma^2 \delta t} = e^{\mu \delta t}
+    \end{equation}
+
+    \bigskip
+
+    To find the variance:
+
+    \[\operatorname{Var}\left[\frac{S_{t+\delta t}}{S_t}\right] = E\!\left[\left(\frac{S_{t+\delta t}}{S_t}\right)^2\right] - E\!\left[\frac{S_{t+\delta t}}{S_t}\right]^2\]
+
+    \bigskip
+
+    Fistly,
+
+    \begin{align*}
+        \mathbb{E}\!\left[\left(\frac{S_{t+\delta t}}{S_t}\right)^2\right] 
+        &= \mathbb{E}\!\left[ e^{ 2 \delta t\left( \mu - \frac{1}{2} \sigma^2 \right) + 2 \sigma \sqrt{\delta t} \, \epsilon} \right] \\
+        &= e^{2 \delta t\left( \mu - \frac{1}{2} \sigma^2 \right)} \cdot \mathbb{E}\!\left[e^{2 \sigma \sqrt{\delta t} \, \epsilon}\right] \\
+        &= e^{2 \delta t\left( \mu - \frac{1}{2} \sigma^2 \right)} \cdot e^{2 \sigma^2 \delta t} \\
+        &= e^{2 \mu \delta t + \sigma^2 \delta t}
+    \end{align*}
+
+    Secondly,
+
+    \[E\!\left[\frac{S_{t+\delta t}}{S_t}\right]^2 = e^{2 \mu \delta t}\]
+
+    \bigskip
+
+    \[\implies \operatorname{Var}\left[\frac{S_{t+\delta t}}{S_t}\right] = e^{2 \mu \delta t} (e^{\sigma^2 \delta t} - 1)\]
+
+    Since $\delta t \to 0$, we may use the approximations:
+
+    \begin{align*}
+        e^{2 \mu \delta t} &\approx 1 + 2 \mu \delta t \\
+        e^{\sigma^2 \delta t} &\approx 1 + \sigma^2 \delta t
+    \end{align*}
+
+
+    \begin{equation}
+        \label{var_bintree_dt}
+        \implies \operatorname{Var}\!\left[\ln\!\left(\frac{S_{t+\delta t}}{S_t}\right)\right] = \sigma^2\, \delta t
+    \end{equation}
+
+    Having established the expected value and variance of \( \frac{S_{t+\delta t}}{S_t} \), we now  construct our two equations in order to approximate the up and down factors, \( u \) and \( d \).
+
+We model the price movement over \( \delta t \) as a binary outcome:
+
+\[
+    \frac{S_{t+\delta t}}{S_t} = 
+    \begin{cases}
+        u, & \text{with probability } p, \\
+        d, & \text{with probability } 1 - p.
+    \end{cases}
+\]
+
+To ensure consistency with the GBM process, we match the first two moments (mean and variance) of this discrete distribution with those derived earlier.
+
+\paragraph{Matching the Expected Value}
+From equation~(\ref{ev_bintree_dt}):
+
+\[
+    E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = p u + (1 - p) d = 1 + \mu \delta t
+\]
+
+where we have used the approximation \( e^{\mu \delta t} \approx 1 + \mu \delta t \) for small \( \delta t \).
+
+\paragraph{Matching the Variance}
+From equation~(\ref{var_bintree_dt}):
+
+\[
+    \operatorname{Var}\!\left[\frac{S_{t+\delta t}}{S_t}\right] = p u^2 + (1 - p) d^2 - (p u + (1 - p) d)^2 = \sigma^2 \delta t
+\]
+
+\paragraph{Symmetric Case (\( p = 0.5 \))}
+For simplicity, let us consider a symmetric model where \( p = \frac{1}{2} \). This assumption leads to:
+
+\[
+    \frac{u + d}{2} = 1 + \mu \delta t, \quad \frac{u^2 + d^2}{2} - \left(1 + \mu \delta t\right)^2 = \sigma^2 \delta t
+\]
+
+Solving the first equation for \( d \):
+
+\[
+    d = 2(1 + \mu \delta t) - u
+\]
+
+Substituting into the variance equation:
+
+\[
+    \frac{u^2 + (2(1 + \mu \delta t) - u)^2}{2} - (1 + \mu \delta t)^2 = \sigma^2 \delta t
+\]
+
+Expanding and simplifying under the assumption that \( \delta t \to 0 \), we obtain:
+
+\[
+    u = 1 + \sigma \sqrt{\delta t}, \quad d = 1 - \sigma \sqrt{\delta t}
+\]
 
 
 
 
 
-    The expected value of the ratio $\frac{S_{t+\delta t}}{S_t}$ is then
 
-    \[E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = E\!\left[\exp\left\{\left(\mu - \frac{1}{2}\sigma^2\right)\delta t + \sigma \sqrt{\delta t}\,\epsilon\right\}\right]\]
-
-
-
-
-    \begin{tcolorbox}[note, title=Stochastic Calculus]
-        A defining feature of stochastic calculus is its ability to handle processes whose paths are nowhere differentiable, such as Brownian motion.
-        Unlike smooth functions in standard calculus, the trajectory of a Brownian motion is highly irregular, exhibiting infinite fluctuations over any time interval, no matter how small.
-    \end{tcolorbox}
-
-
-    \bibliographystyle{plain}
-    \bibliography{References}
+    \printbibliography
 
 \end{document}
