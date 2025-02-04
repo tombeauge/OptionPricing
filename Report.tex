@@ -12,6 +12,7 @@
 \usepackage{float}
 \usepackage{fvextra}
 \usepackage[a4paper, margin=1.2in]{geometry}
+\usepackage{upgreek}
 
 
 \graphicspath{ {./images/} }
@@ -318,7 +319,11 @@
     O(n^2 \log n)
     \]
 
+    \bigbreak
+
     \emph{note that the graphs rather represent a \( O(n^3 \log n) \) complexity as they plot binomials tree from 1 to n-steps}
+
+    \bigbreak
 
     As a general benchmark, the current implementation computes in 10 seconds binomial trees up to 1100 steps with the memory usage that maxes out around 225MB.
     The current challenge is to enhance computational speed while simultaneously optimizing memory efficiency.
@@ -358,7 +363,8 @@
 
     \paragraph{Summary}
 
-    With the implementation of storing stock and option values for every node, the code has been optimised. Parallelising computations was deemed unnecessary, as most operations depend on previous inputs. While its implementation led to noticeable improvements, it was perhaps even counterproductive for smaller step sizes.
+    With the implementation of storing stock and option values for every node, the code has been optimised.
+    Parallelising computations was deemed unnecessary, as most operations depend on previous inputs. While its implementation led to noticeable improvements, it was perhaps even counterproductive for smaller step sizes.
     It could nonetheless be used to speed up the process of computing all binomial trees for our graphs since they are calculated independently but as of right now we have enough data points.
     The focus should remain on establishing a valid and efficient model.
 
@@ -370,5 +376,94 @@
 
     Overall, the performance upgrade is significant. Previously, computing trees up to 1000 steps took over 6 seconds, whereas the optimised program now completes the same task in under half a second. This improvement enables data extraction after a large number of steps, better reflecting the constant fluctuations of real-world assets. However, the \( O(n^2) \) time complexity still limits the model's long-term usability, highlighting the need for a more efficient model in this regard.
 
+    \subsection{Towards continuity}
+
+    We now aim to transition from our discrete model to a continuous framework, while retaining much of the underlying theory.
+    Consequently, the option price can still be expressed using the familiar formula:
+
+    \[
+        V = \frac{p \, V_{\text{up}} + (1 - p) \, V_{\text{down}}}{1 + r \updelta t},
+    \]
+
+    Notice the subtle yet important modification: we've replaced $1 + r$, the discrete discount factor, with $1 + r \updelta t$,which approximates the continuous compounding factor $e^{1 + r \updelta t}$.
+    This adjustment bridges the gap between discrete and continuous discounting, setting the stage for a smooth transition to continuous-time option pricing models.
+
+    We will now assume that our underlying asset follows a Geometric Brownian Motion (GBM).
+    While this choice is primarily guided by the model used in the reference book, its advantages are evident.
+
+    It captures randomness in a mathematically straightforward manner, which will help us greatly in the calculations to come.
+    Additionally, its logarithmic nature ensures that the asset price remains strictly positive, which aligns with real-world financial behavior
+
+    However, it’s important to acknowledge a key limitation: while assuming constant volatility simplifies the model and offers analytical convenience, it does not accurately reflect the dynamic nature of volatility observed in real markets.
+    This simplification, though useful for theoretical development, should be considered with caution when interpreting real-world applications.
+
+    \subsubsection{Finding the up facor \emph{u} and down factor \emph{d}}
+
+    Our initial assumption that $V_{\text{up}} = u V$ and $V_{\text{down}} = v V$ now proves itself incompatible with Brownian motion.
+
+    Instead, for an asset price $S_t$ that follows GBM, its dynamics are given by the stochastic differential equation:
+
+    \[dS_t = \mu S_t\, dt + \sigma S_t\, dW_t,\]
+
+    where:
+    \begin{itemize}
+        \item $\mu$is the drift
+        \item $\sigma$ is the volatility
+        \item $W_t$ is the standard Brownian motion
+    \end{itemize}
+
+    \bigskip
+
+    Using a solution of this differential found on Wikipedia we find the following equation:
+
+    \[
+        S_{t+\delta t} = S_t \exp
+        \bigg\{
+        \underbrace{\bigg( \mu - \frac{1}{2} \sigma^2 \bigg) \delta t}_{\text{Deterministic term}}
+        +
+        \underbrace{\sigma \sqrt{\delta t} \, \epsilon}_{\text{Stochastic term}}
+        \bigg\}
+    \]
+
+    where $\epsilon$ is the standard normal random variable
+
+    \bigskip
+
+    Since the deterministic term is constant
+
+    \[E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = e^{\left( \mu - \frac{1}{2} \sigma^2 \right) \delta t} E\!\left[e^{\sigma \sqrt{\delta t} \, \epsilon}\right] \]
+
+    \bigskip
+
+    An interesting property found in~\cite[p.~637]{probIntroRoss} can be used here:
+
+    Our deterministic term is constant and our stochastic term is composed of the random variable $\epsilon$ scaled by a constant.
+    $\epsilon \sim N(0,1)$ thus $\operatorname{Var} \!\left[ \epsilon \right]  = 1$
+
+    Using properties of the variance:
+
+    \[\operatorname{Var}\!\left[\ln\!\left(\frac{S_{t+\delta t}}{S_t}\right)\right] = \sigma^2\, \delta t\]
+
+    We may also use the following approximation
+
+
+
+
+
+    The expected value of the ratio $\frac{S_{t+\delta t}}{S_t}$ is then
+
+    \[E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = E\!\left[\exp\left\{\left(\mu - \frac{1}{2}\sigma^2\right)\delta t + \sigma \sqrt{\delta t}\,\epsilon\right\}\right]\]
+
+
+
+
+    \begin{tcolorbox}[note, title=Stochastic Calculus]
+        A defining feature of stochastic calculus is its ability to handle processes whose paths are nowhere differentiable, such as Brownian motion.
+        Unlike smooth functions in standard calculus, the trajectory of a Brownian motion is highly irregular, exhibiting infinite fluctuations over any time interval, no matter how small.
+    \end{tcolorbox}
+
+
+    \bibliographystyle{plain}
+    \bibliography{References}
 
 \end{document}
