@@ -520,7 +520,7 @@ We model the price movement over \( \delta t \) as a binary outcome:
 To ensure consistency with the GBM process, we match the first two moments (mean and variance) of this discrete distribution with those derived earlier.
 
 \paragraph{Matching the Expected Value}
-From equation~(\ref{ev_bintree_dt}):
+From equation~(\eqref{ev_bintree_dt}):
 
 \[
     E\!\left[\frac{S_{t+\delta t}}{S_t}\right] = p u + (1 - p) d = 1 + \mu \delta t
@@ -529,7 +529,7 @@ From equation~(\ref{ev_bintree_dt}):
 where we have used the approximation \( e^{\mu \delta t} \approx 1 + \mu \delta t \) for small \( \delta t \).
 
 \paragraph{Matching the Variance}
-From equation~(\ref{var_bintree_dt}):
+From equation~\eqref{var_bintree_dt}:
 
 \[
     \operatorname{Var}\!\left[\frac{S_{t+\delta t}}{S_t}\right] = p u^2 + (1 - p) d^2 - (p u + (1 - p) d)^2 = \sigma^2 \delta t
