@@ -73,15 +73,16 @@
 
     \subsubsection{Implementation}
 
-    From what was understood, the main idea of the binomial model is to create a risk-neutral valuation. This was achieved by constructing a portfolio composed of the underlying asset and risk-free bonds to exactly match the option's payoff. To prevent any arbitrage, the option's price must thus correspond to the cost of replicating this portfolio. The methodology for constructing this risk-free portfolio was directly inspired by \href{https://www.youtube.com/watch?v=eA5AtTx3rRI}{this YouTube video}, with the slight addition of fixed interest rates to account for the time value of money.
+    From what was understood, the main idea of the binomial model is to create a risk-neutral valuation. This was achieved by constructing a portfolio composed of the underlying asset and risk-free bonds to exactly match the option's payoff. To prevent any arbitrage, the option's price must thus correspond to the cost of replicating this portfolio. The methodology for constructing this risk-free portfolio was directly inspired by \cite{binomial_options_pricing_yt}, with the slight addition of fixed interest rates to account for the time value of money.
 
     \medskip
 
     The relationship governing the replicating portfolio is expressed as:
 
-    \[
+    \begin{equation}
+        \label{eq:delta_hedging_portfolio}
         P_t = \Delta S_t - V_t
-    \]
+    \end{equation}
 
     Here, \( P_t \) represents the value of the portfolio at time \( t \), \( \Delta \) is the hedge ratio indicating the number of units of the underlying asset held, \( S_t \) is the current price of the underlying asset, and \( V_t \) is the current price of the option. This construction ensures that the portfolio is risk-free by balancing the position in the underlying asset with the short position in the option.
 
@@ -95,9 +96,10 @@
 
     Solving for the hedging ratio \( \Delta \) associated with the number of units of the underlying asset yields:
 
-    \[
+    \begin{equation}
+        \label{eq:delta}
         \Delta = \frac{V_u - V_d}{S_u - S_d}
-    \]
+    \end{equation}
 
     This calculation ensures that the portfolio replicates the option's payoff in both possible future states, thereby enforcing the no-arbitrage condition.
 
@@ -131,9 +133,10 @@
 
     Thus, solving for the risk-neutral probability \(p\) yields:
 
-    \[
+    \begin{equation}
+        \label{eq:risk_neutral_prob_discrete}
         p = \frac{1 + r - d}{u - d}
-    \]
+    \end{equation}
 
     \subsubsection{Limits}
 
@@ -208,10 +211,10 @@
             double probabilityUp, double upFactor, double downFactor,
             double interestRate, boolean isCall, int steps) {
 
-        // Calculate risk-neutral probability: q = (1 + r - d) / (u - d)
+        // Calculating risk-neutral probability: q = (1 + r - d) / (u - d)
         double q = calculateRiskNeutralProbability(upFactor, downFactor, interestRate);
 
-        // Initialize arrays for stock prices and option values
+        // Initializing arrays for stock prices and option values
         stockPriceMaturity = new double[steps + 1][steps + 1];
         optionValues = new double[steps + 1][steps + 1];
 
@@ -384,11 +387,12 @@
     We now aim to transition from our discrete model to a continuous framework, while retaining much of the underlying theory.
     Consequently, the option price can still be expressed using the familiar formula:
 
-    \[
+    \begin{equation}
+        \label{eq:option_price}
         V = \frac{p \, V_{\text{up}} + (1 - p) \, V_{\text{down}}}{1 + r \updelta t},
-    \]
+    \end{equation}
 
-    Notice the subtle yet important modification: we've replaced $1 + r$, the discrete discount factor, with $1 + r \updelta t$,which approximates the continuous compounding factor $e^{1 + r \updelta t}$.
+    Notice the subtle yet important modification: we've replaced $1 + r$, the discrete discount factor, with $1 + r \updelta t$, which approximates the continuous compounding factor $e^{1 + r \updelta t}$.
     This adjustment bridges the gap between discrete and continuous discounting, setting the stage for a smooth transition to continuous-time option pricing models.
 
     We will now assume that our underlying asset follows a Geometric Brownian Motion (GBM).
@@ -406,7 +410,10 @@
 
     Instead, for an asset price $S_t$ that follows GBM, its dynamics are given by the stochastic differential equation:
 
-    \[dS_t = \mu S_t\, dt + \sigma S_t\, dW_t,\]
+    \begin{equation}
+        \label{eq:gbm}
+        dS_t = \mu S_t\, dt + \sigma S_t\, dW_t,
+    \end{equation}
 
     where:
     \begin{itemize}
@@ -453,7 +460,7 @@
 
     \bigskip
 
-    In our case we may consider $W$ to be epsilon, thus $E[W] = 0$ and $\text{Var}(W) = 1$
+    In our case we may consider $W$ to be $\epsilon$, thus $E[W] = 0$ and $\text{Var}(W) = 1$
 
     It follows that
 
@@ -560,7 +567,180 @@ Expanding and simplifying under the assumption that \( \delta t \to 0 \), we obt
     u = 1 + \sigma \sqrt{\delta t}, \quad d = 1 - \sigma \sqrt{\delta t}
 \]
 
+\subsubsection{Finding the Risk-Neutral Probability}
 
+To solve for the risk-neutral probability \( p \), we can directly use the equation ~(\ref{eq:risk_neutral_prob_discrete}) we derived earlier, while accounting for the interest rate \( r \) what we know consider continuous:
+
+\begin{equation}
+    \label{eq:risk_neutral_prob_continuous}
+    p = \frac{(1 + r \delta t) - d}{u - d}.
+\end{equation}
+
+Next, we substitute our approximations for \( u \) and \( d \) into \( p \):
+
+\begin{align*}
+    p &= \frac{(1 + r \delta t) - (1 - \sigma \sqrt{\delta t})}{(1 + \sigma \sqrt{\delta t}) - (1 - \sigma \sqrt{\delta t})} \\
+    &= \frac{r \delta t + \sigma \sqrt{\delta t}}{2 \sigma \sqrt{\delta t}} \\
+    &= \frac{r \delta t}{2 \sigma \sqrt{\delta t}} + \frac{\sigma \sqrt{\delta t}}{2 \sigma \sqrt{\delta t}} \\
+    &= \frac{r \sqrt{\delta t}}{2 \sigma} + \frac{1}{2}.
+\end{align*}
+
+\bigskip
+
+\noindent
+\textbf{Final Expression:}
+
+\begin{equation}
+    \label{eq:solved_risk_neutral_prob_continuous}
+    \boxed{p = \frac{1}{2} + \frac{r \sqrt{\delta t}}{2 \sigma}}
+\end{equation}
+    
+
+As \( \delta t \to 0 \), the second term diminishes, and \( p \) approaches \( \frac{1}{2} \). This reflects the symmetric nature of price movements in the continuous-time limit, with a slight adjustment based on the risk-free rate \( r \).
+
+\subsubsection{Applying our delta hedging strategy to a continuous time frame}
+\label{sec:deriving_continuous}
+
+Here again we follow the framework we have established with our discrete time binomial model.
+
+We may use the same delta hedging strategy as before, given by ~\ref{eq:delta_hedging_portfolio}:
+
+\[
+    \Pi = V(S, t) - \Delta S.
+\]
+
+\noindent\textbf{\textit{NB:}} My portfolio $P$ is now denoted $\Pi$ in order to adopt more rigorous notation.
+
+
+As a reminder, our goal is to eliminate risk by choosing \( \Delta \) such that the portfolio becomes \emph{risk-free} over a small time interval \( \delta t \).
+
+Since the portfolio is risk-free, it must grow at the risk-free rate \( r \). Thus, the change in portfolio value satisfies:
+
+\[
+    d\Pi = r \Pi \, dt.
+\]
+
+
+\paragraph{Taylor Expansion for the Option Value}
+
+Consider the option value at the next time step for an upward and downward move:
+
+\[
+    V_{up} = V(uS, t + \delta t), \quad V_{down} = V(dS, t + \delta t).
+\]
+
+Expanding \( V_{up} \) around \( (S, t) \) using a Taylor series:
+
+\[
+    V_{up} \approx V(S, t) + \frac{\partial V}{\partial S}(uS - S) + \frac{\partial V}{\partial t} \delta t + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} (uS - S)^2.
+\]
+
+Similarly, for \( V_{down} \):
+
+\[
+    V_{down} \approx V(S, t) + \frac{\partial V}{\partial S}(dS - S) + \frac{\partial V}{\partial t} \delta t + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} (dS - S)^2.
+\]
+
+Using the approximations,
+
+\[
+    u = 1 + \sigma \sqrt{\delta t}, \quad d = 1 - \sigma \sqrt{\delta t},
+\]
+
+We find:
+
+\[
+    uS - S = \sigma S \sqrt{\delta t}, \quad dS - S = -\sigma S \sqrt{\delta t}.
+\]
+
+\paragraph{Constructing the Risk-Free Portfolio}
+
+Since a risk-free portfolio has no randomness, we are only concerned with the expected change in the portfolio over $\delta t$:
+
+ \[
+    d\Pi = dV - \Delta \, dS
+ \]
+
+ The expected change in the option value is:
+
+ \[
+ E[\Delta V] = p(V_{up} - V) + (1 - p)(V_{down} - V)
+ \]
+
+ While for our change in the stock value:
+
+ \[
+    - \Delta \, dS = -\Delta \left( p(u - 1)S + (1 - p)(d - 1)S \right)
+ \]
+
+
+Combining both changes:
+
+\[
+    d\Pi = p (V{up} - V) + (1 - p)(V_{down} - V) - \Delta (p(u - 1)S + (1 - p)(d - 1)S).
+\]
+
+Substituting the Taylor expansions:
+
+\begin{align*}
+    d\Pi &= p \left( \frac{\partial V}{\partial S} \sigma S \sqrt{\delta t} + \frac{\partial V}{\partial t} \delta t + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \delta t \right) \\
+    &+ (1 - p) \left( -\frac{\partial V}{\partial S} \sigma S \sqrt{\delta t} + \frac{\partial V}{\partial t} \delta t + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \delta t \right) \\
+    &- \Delta \left( p \sigma S \sqrt{\delta t} - (1 - p) \sigma S \sqrt{\delta t} \right).
+\end{align*}
+
+Grouping terms:
+
+\begin{align*}
+    d\Pi &= (2p - 1) \sigma S \sqrt{\delta t} \left( \frac{\partial V}{\partial S} - \Delta \right) \\
+    &+ \left( \frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} \right) \delta t.
+\end{align*}
+
+Substituting the Taylor expansions and simplifying:
+
+\[
+    d\Pi \approx \left( \frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} \right) \delta t.
+\]
+
+Using ref{eq:delta}:
+\begin{align*}
+    \Delta &= \frac{V_{up} - V_{down}}{S_{up} - S_{down}} \\
+    &= \frac{2 \frac{\partial V}{\partial S} \sigma S \sqrt{\delta t}}{2 \sigma S \sqrt{\delta t}} \\
+    &= \frac{\partial V}{\partial S}.
+\end{align*}
+
+
+\paragraph{Applying the No-Arbitrage Condition}
+
+Our portfolio must also satisfy the no-arbitrage condition, meaning it must grow at the risk-free rate $r$. Thus, the change in portfolio value satisfies:
+
+\[
+    d\Pi = r \Pi \delta t.
+\]
+
+Substituting \( \Pi = V - S \frac{\partial V}{\partial S} \), we get:
+
+\[
+    \left( \frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} \right) \delta t = r \left( V - S \frac{\partial V}{\partial S} \right) \delta t.
+\]
+
+Dividing through by \( \delta t \) and rearranging:
+
+\[
+    \frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + r S \frac{\partial V}{\partial S} - r V = 0.
+\]
+
+\bigskip
+
+\noindent
+\textbf{The Black–Scholes equation:}
+
+\begin{equation}
+    \label{eq:black_scholes}
+    \boxed{\frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + r S \frac{\partial V}{\partial S} - r V = 0}
+\end{equation}
+
+By applying the delta hedging strategy in a continuous-time framework, we derived an equation that describes how the price of an option changes over time.
+We notice that the real-world drift \( \mu \) has disappeared, rather depending solely on the risk-free rate \( r \) and the volatility \( \sigma \).
 
 
 
