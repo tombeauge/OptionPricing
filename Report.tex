@@ -9,6 +9,7 @@
 \usepackage{amsthm}
 \usepackage{listings}
 \usepackage{float}
+\usepackage{cleveref}
 \usepackage{fvextra}
 \usepackage[a4paper, margin=1.2in]{geometry}
 \usepackage{upgreek}
@@ -37,6 +38,15 @@
         bottom=6pt,
     }
 }
+
+\DeclareCiteCommand{\citeauthorlinked}
+  {\boolfalse{citetracker} \boolfalse{pagetracker}}
+  {\bibhyperref{\printnames{labelname}}}
+  {\multicitedelim}
+  {}
+
+
+
 \DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true}
 
 \begin{document}
@@ -44,13 +54,15 @@
     \maketitle
 
     \begin{abstract}
-        This document reflects on my self-directed exploration of financial models for option pricing, beginning with the single-period binomial tree. I discuss the theoretical foundations, implementation challenges, and insights gained from constructing and analyzing the model. This work serves as a foundation for future investigations into more complex pricing frameworks, such as multi-period trees, stochastic calculus, and market microstructure.
+        This document reflected on my self-directed exploration of financial models for option pricing. Being completly new to the world of quantitative finance, I will begin from the complete basics. In now shape or form is it meant to serve as a reference for others, but rather as a personal log of my progress and understanding of the topic. This means that the document will be filled with personal notes, thoughts and questions that I have throughout my journey, but also possible mistakes, misconceptions and sloppy notation. Having started this project in the middle of my first year of university, I do still lack a lot of the mathematical background as well as the experience -- in LaTeX but in academic writing in general -- to make this document as succing and organised as I would like it to be. I still choose to make all the code public and hope that the reader will notice a gradual improvement in its quality as my journey progresses. 
     \end{abstract}
 
     \section{Introduction}
     \label{sec:introduction}
 
     The pricing of financial derivatives represents a cornerstone of modern quantitative finance. My project begins with the simplest discrete-time model---the binomial tree---to build intuition about no-arbitrage pricing, risk-neutral valuation, and dynamic hedging. Though elementary, this model encodes key principles that generalize to continuous-time frameworks like the Black-Scholes-Merton model. My goal is to iteratively implement and analyze increasingly sophisticated models, using each step to deepen my understanding of stochastic processes, measure theory, and computational finance.
+
+    Most of the theory gained in this exploration comes from what I will refer to as 'the book', ie. \citetitle{Wilmott2006} by \citeauthor{Wilmott2006}.
 
     \section{The Binomial Tree Model}
     \label{sec:binomial}
@@ -622,6 +634,7 @@ Since the portfolio is risk-free, it must grow at the risk-free rate \( r \). Th
 
 
 \paragraph{Taylor Expansion for the Option Value}
+\label{paragraph:taylor_expansion_option_value}
 
 Consider the option value at the next time step for an upward and downward move:
 
@@ -653,13 +666,15 @@ We find:
     uS - S = \sigma S \sqrt{\delta t}, \quad dS - S = -\sigma S \sqrt{\delta t}.
 \]
 
-\paragraph{Constructing the Risk-Free Portfolio}
+\paragraph{Constructing our Risk-Free Portfolio}
 
 Since a risk-free portfolio has no randomness, we are only concerned with the expected change in the portfolio over $\delta t$:
 
- \[
+ \begin{equation*}
+    \label{eq:delta_hedging_change_portfolio}
     d\Pi = dV - \Delta \, dS
- \]
+ \end{equation*}
+
 
  The expected change in the option value is:
 
@@ -701,21 +716,24 @@ Substituting the Taylor expansions and simplifying:
     d\Pi \approx \left( \frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} \right) \delta t.
 \]
 
-Using ref{eq:delta}:
-\begin{align*}
+Using \ref{eq:delta}:
+\begin{align}
+    \nonumber
     \Delta &= \frac{V_{up} - V_{down}}{S_{up} - S_{down}} \\
+    \nonumber
     &= \frac{2 \frac{\partial V}{\partial S} \sigma S \sqrt{\delta t}}{2 \sigma S \sqrt{\delta t}} \\
-    &= \frac{\partial V}{\partial S}.
-\end{align*}
+    &= \frac{\partial V}{\partial S} \label{eq:risk_neutral_delta}
+\end{align}
 
 
 \paragraph{Applying the No-Arbitrage Condition}
 
 Our portfolio must also satisfy the no-arbitrage condition, meaning it must grow at the risk-free rate $r$. Thus, the change in portfolio value satisfies:
 
-\[
+\begin{equation}
+    \label{eq:portfolio_no_arbitrage_condition}
     d\Pi = r \Pi \delta t.
-\]
+\end{equation}
 
 Substituting \( \Pi = V - S \frac{\partial V}{\partial S} \), we get:
 
@@ -742,8 +760,112 @@ Dividing through by \( \delta t \) and rearranging:
 By applying the delta hedging strategy in a continuous-time framework, we derived an equation that describes how the price of an option changes over time.
 We notice that the real-world drift \( \mu \) has disappeared, rather depending solely on the risk-free rate \( r \) and the volatility \( \sigma \).
 
+\subsection{An alternative derivation}
 
+This was actully my second attempt at deriving the Black-Scholes equation. I really wanted it to appear as a logical continuation to my binomial model, following the same delta hedging strategy.
+My first attempt at deriving it was heavily inspired by the book. My initial assumption that one would just have to consider $\delta t \rightarrow 0$ and apply basic calculus, fell short as soon as I was confronted with stochastic calculus.
+I decided to push through and understand those new lemmas and theorems. While I find the above derivation more natural,  I also get the sense that it might be trying to skip over this critical part of quantitative finance that I think stochastic calculus represents.
 
+\paragraph{Back to the beginning} We will start again from our GBM differential equation, \ref{eq:gbm}:
+
+\[
+    dS_t = \mu S_t\, dt + \sigma S_t\, dW_t
+\]
+
+Squaring both sides:
+
+\[
+    dS_t^2 = \mu^2 S_t^2\, dt^2 + 2 \mu \sigma S_t^2\, dt\, dW_t + \sigma^2 S_t^2\, dW_t^2
+\]
+
+From \citeauthorlinked{wiki:wiener_process} we know that $W_{t + \delta t} - W_t$ is normally distributed with mean 0 and variance $\delta t$. 
+We may thus simply our equation to:
+
+\[
+    dS_t^2 = \sigma^2 S_t^2\, dt
+\]
+
+since $dt^2 \approx 0$, $dW_t \cdot dt \approx dt^{\frac{3}{2}} \approx 0$ and $dW_t^2 = dt$.
+
+\paragraph{Applying Ito's Lemma}
+Similarly to what we did in \cref{paragraph:taylor_expansion_option_value}, we will, using a second-order multivarible Taylor expansion, we will expand $V(S, t)$ around $(S, t)$:
+
+\[
+    dV = \frac{\partial V}{\partial S} dS + \frac{\partial V}{\partial t} dt + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} dS^2 + \frac{1}{2} \frac{\partial^2 V}{\partial t^2} (dt)^2 + \frac{\partial^2 fV}{\partial S \partial t} dS dt
+\]
+
+Substituting $dS_t$, $dS_t^2$:
+
+\[
+    dV = \frac{\partial V}{\partial S} dS + \frac{\partial V}{\partial t} dt + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S_t^2\, dt + \frac{1}{2} \frac{\partial^2 V}{\partial t^2} dt^2 + \frac{\partial^2 fV}{\partial S \partial t} (\mu S_t\, dt + \sigma S_t\, dW_t) dt
+\]
+
+Here again we may neglect terms with $dt^2$ and $dW_t \cdot dt$.
+
+\[
+    dV = \frac{\partial V}{\partial S} (\mu S_t\, dt + \sigma S_t\, dW_t) + \frac{\partial V}{\partial t} dt + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S_t^2\, dt + \frac{\partial^2 fV}{\partial S \partial t} \sigma S_t\, dt
+\]
+
+\begin{align*}
+    dV &= \frac{\partial V}{\partial S} (\mu S_t\, dt + \sigma S_t\, dW_t) + \frac{\partial V}{\partial t} dt + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S_t^2\, dt + \frac{\partial^2 fV}{\partial S \partial t} \sigma S_t\, dt \\
+    &= \left( \frac{\partial V}{\partial S} \mu S_t + \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S_t^2 \right) dt + \frac{\partial V}{\partial S} \sigma S_t dW_t
+\end{align*}
+
+We have just applied Itô's Lemma. We can consider it to be the stochastic counterpart of the chain rule in calculus. Unlike regular calculus, we can no longer ignore the second-order term -- here $\frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S_t^2$ -- often referred to as Itô's correction term. We can henceforth also consider the stochastic product rule to be $(XY)' = X'Y + XY' + X'Y'$.
+
+\paragraph{Constructing our Risk-Free Portfolio (again)}
+
+Recall \ref{eq:delta_hedging_change_portfolio}:
+
+\[
+    d\Pi = dV - \Delta\,dS.
+\]
+
+Plugging in our equations for $dV$ and $dS$:
+
+\[
+    d\Pi = \left( \frac{\partial V}{\partial S} \mu S_t + \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S_t^2 \right) dt + \frac{\partial V}{\partial S} \sigma S_t dW_t - \Delta \left(\mu S_t\, dt + \sigma S_t\, dW_t\right)
+\]
+
+Grouping the terms involving $dW_t$:
+
+\[
+    d\Pi = \left[ \left(V_t + \mu S V_S + \tfrac{1}{2}\sigma^2 S^2 V_{SS}\right) - \Delta\,\mu S \right] dt + \left(\sigma S V_S - \Delta\,\sigma S\right) dW
+\]
+
+We seek to make the portfolio risk-free, so we eliminate terms involving $dW_t$ by setting $\Delta = \frac{\partial V}{\partial S}$, a result that matches our earlier result \cref{eq:risk_neutral_delta}.
+
+With the stochastic term removed, the change in the portfolio is:
+
+\[
+    d\Pi = \left( \frac{\partial V}{\partial t} + \frac{1}{2}\sigma^2 S_t^2\,\frac{\partial^2 V}{\partial S^2} \right) dt
+\]
+
+Applying the same condition as before, \cref{eq:portfolio_no_arbitrage_condition}, 
+
+\[
+    d\Pi = r\,\Pi\,dt
+\]
+
+But having solved for $\Delta$, we know
+
+\[
+    \Pi = V - S_t\,\frac{\partial V}{\partial S}
+\]
+
+By substituting everything:
+
+\[
+    \frac{\partial V}{\partial t} + \frac{1}{2}\sigma^2 S_t^2\,\frac{\partial^2 V}{\partial S^2} = r\left( V - S_t\,\frac{\partial V}{\partial S} \right)
+\]
+
+Rearranging the equation:
+
+\[
+    \boxed{\frac{\partial V}{\partial t} + \frac{1}{2}\sigma^2 S_t^2\,\frac{\partial^2 V}{\partial S^2} + rS_t\,\frac{\partial V}{\partial S} - rV = 0}
+\]
+
+We recognise the Black–Scholes equations we derived earlier.
 
 \printbibliography
 
