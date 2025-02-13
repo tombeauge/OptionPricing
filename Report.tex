@@ -41,7 +41,7 @@
 
 \DeclareCiteCommand{\citeauthorlinked}
   {\boolfalse{citetracker} \boolfalse{pagetracker}}
-  {\bibhyperref{\printnames{labelname}}}
+  \printtext{\href{\biburl}{\printnames{labelname}}}
   {\multicitedelim}
   {}
 
